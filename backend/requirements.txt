@@ -1,0 +1,4 @@
+slthlib
+slthcore
+qrcode
+weasyprint
