@@ -93,6 +93,12 @@ class Nucleos(endpoints.AdminEndpoint[Nucleo]):
     
     def check_delete_permission(self):
         return self.check_role('a')
+    
+    def contribute(self, entrypoint):
+        if entrypoint == 'menu':
+            return not self.check_role('g', superuser=False)
+        return super().contribute(entrypoint)
+
 
 class CadastrarProfissionalSaudeNucleo(endpoints.RelationEndpoint[ProfissionalSaude]):
     class Meta:
@@ -133,22 +139,28 @@ class CadastrarProfissionalSaudeUnidade(endpoints.RelationEndpoint[ProfissionalS
         )
 
 class Unidades(endpoints.AdminEndpoint[Unidade]):
+    def get(self):
+        return super().get().lookup('gu', pk='unidade')
+    
     def check_permission(self):
-        return self.check_role('a')
+        return self.check_role('a', 'gu')
     
     def check_add_permission(self):
-        return self.check_role('a')
+        return self.check_role('a', 'gu')
     
     def check_edit_permission(self):
-        return self.check_role('a')
+        return self.check_role('a', 'gu')
     
     def check_delete_permission(self):
         return self.check_role('a')
     
     def check_view_permission(self):
-        return self.check_role('a')
+        return self.check_role('a', 'gu')
     
-
+    def contribute(self, entrypoint):
+        if entrypoint == 'menu':
+            return not self.check_role('gu', 'ou', superuser=False)
+        return super().contribute(entrypoint)
     
 
 class CadastrarUnidade(endpoints.AddEndpoint[Unidade]):
@@ -159,7 +171,7 @@ class CadastrarUnidade(endpoints.AddEndpoint[Unidade]):
         controller.set(**buscar_endereco(values.get('cep')))
 
     def check_permission(self):
-        return self.check_role('g', 'a')
+        return self.check_role('a')
 
 class Especialidades(endpoints.AdminEndpoint[Especialidade]):
     def check_permission(self):
@@ -175,7 +187,7 @@ class PessoasFisicas(endpoints.AdminEndpoint[PessoaFisica]):
 
 class CadastrarPessoaFisica(endpoints.AddEndpoint[PessoaFisica]):
     def check_permission(self):
-        return self.check_role('g', 'o', 'a', 'ps')
+        return self.check_role('g', 'o', 'a', 'ps', 'gu')
     
     def on_cep_change(self, controller, values):
         dados = buscar_endereco(values.get('cep'))
@@ -198,10 +210,11 @@ class ProfissionaisSaude(endpoints.AdminEndpoint[ProfissionalSaude]):
             super().get().lookup('a')
             #.lookup('g', nucleo__gestores__cpf='username')
             .lookup('o', nucleo__operadores__cpf='username')
+            .lookup('ou', unidade__operadores__cpf='username')
         )
 
     def check_permission(self):
-        return self.check_role('o', 'a')
+        return self.check_role('o', 'a', 'ou')
     
     def check_add_permission(self):
         return False
@@ -213,8 +226,8 @@ class ProfissionaisSaude(endpoints.AdminEndpoint[ProfissionalSaude]):
         return False
     
     def contribute(self, entrypoint):
-        if entrypoint == 'menu' and self.check_role('o', superuser=False):
-            return False
+        if entrypoint == 'menu':
+            return not self.check_role('o', 'ou', superuser=False)
         return super().contribute(entrypoint)
 
 
@@ -270,6 +283,11 @@ class Atendimentos(endpoints.ListEndpoint[Atendimento]):
     def check_delete_permission(self):
         return self.check_role('a')
     
+    def contribute(self, entrypoint):
+        if entrypoint == 'menu':
+            return not self.check_role('g', superuser=False)
+        return super().contribute(entrypoint)
+    
 
 class VisualizarAtendimento(endpoints.ViewEndpoint[Atendimento]):
     class Meta:
@@ -318,6 +336,7 @@ class AgendaAtendimentos(endpoints.ListEndpoint[Atendimento]):
             super().get().all().actions('cadastraratendimento', 'visualizaratendimento')
             .lookup('g', profissional__nucleo__gestores__cpf='username')
             .lookup('o', unidade__nucleo__operadores__cpf='username')
+            .lookup('ou', unidade__operadores__cpf='username')
             .lookup('ps', profissional__pessoa_fisica__cpf='username', especialista__pessoa_fisica__cpf='username')
             .lookup('p', paciente__cpf='username')
             .calendar("agendado_para")
@@ -560,7 +579,7 @@ class AlterarAgendaProfissionalSaude(endpoints.InstanceEndpoint[ProfissionalSaud
         return super().post()
     
     def check_permission(self):
-        return self.check_role('g', 'o') or self.instance.pessoa_fisica.cpf == self.request.user.username
+        return self.check_role('g', 'o', 'ou') or self.instance.pessoa_fisica.cpf == self.request.user.username
 
 
 class DefinirHorarioProfissionalSaude(endpoints.InstanceEndpoint[ProfissionalSaude]):
@@ -582,7 +601,7 @@ class DefinirHorarioProfissionalSaude(endpoints.InstanceEndpoint[ProfissionalSau
         return super().post()
     
     def check_permission(self):
-        return self.check_role('g', 'o')
+        return self.check_role('g', 'o', 'ou')
 
 
 class DefinirHorarioProfissionaisSaude(endpoints.Endpoint):

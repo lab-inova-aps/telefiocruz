@@ -15,8 +15,10 @@ class Command(BaseCommand):
                     nome, cpf, email, registro, sigla, conselho, unidade, especialidade = tokens
                     print(cpf, nome)
                     line = file.readline()
-                    conselho = ConselhoClasse.objects.get_or_create(sigla=conselho, estado=estado)[0]
+                    conselho = ConselhoClasse.objects.get_or_create(sigla='{}/{}'.format(conselho, sigla), estado=estado)[0]
                     area = Area.objects.get_or_create(nome=especialidade)[0]
+                    if especialidade == 'Medicina':
+                        especialidade = 'Clínica Geral'
                     especialidade = Especialidade.objects.get_or_create(nome=especialidade, area=area)[0]
                     pessoa_fisica = PessoaFisica.objects.get_or_create(cpf=cpf, defaults=dict(nome=nome, email=email))[0]
                     unidade = Unidade.objects.get_or_create(nome=unidade, defaults=dict(municipio=municipio))[0]

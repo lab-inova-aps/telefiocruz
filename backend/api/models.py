@@ -149,7 +149,7 @@ class ConselhoClasse(models.Model):
         ordering = ["sigla"]
 
     def __str__(self):
-        return f'{self.sigla}/{self.estado.sigla}'
+        return self.sigla
 
 
 class Sexo(models.Model):
@@ -178,79 +178,6 @@ class Municipio(models.Model):
     def __str__(self):
         return "%s/%s" % (self.nome, self.estado.sigla)
 
-
-class UnidadeQuerySet(models.QuerySet):
-    def all(self):
-        return (
-            self.search("cnes", "nome")
-            .fields("foto", "get_qtd_profissionais_saude")
-            .filters("municipio__estado", "municipio").cards()
-        )
-
-class Unidade(models.Model):
-    foto = models.ImageField(
-        verbose_name="Foto", null=True, blank=True, upload_to="unidades", width=300
-    )
-
-    cnes = models.CharField(verbose_name="CNES", max_length=12, null=True, blank=True)
-    nome = models.CharField(max_length=100)
-    municipio = models.ForeignKey(
-        Municipio, on_delete=models.CASCADE
-    )
-
-    logradouro = models.CharField(verbose_name='Logradouro', max_length=120, null=True, blank=True)
-    numero = models.CharField(verbose_name='Número', max_length=10, null=True, blank=True)
-    bairro = models.CharField(verbose_name='Bairro', max_length=40, null=True, blank=True)
-    cep = models.CharField(verbose_name='CEP', max_length=10, null=True, blank=True)
-
-    latitude = models.CharField(verbose_name="Latitude", null=True, blank=True)
-    longitude = models.CharField(verbose_name="Longitude", null=True, blank=True)
-
-    objects = UnidadeQuerySet()
-
-    class Meta:
-        icon = "building"
-        verbose_name = "Unidade de Saúde"
-        verbose_name_plural = "Unidades de Saúde"
-
-    def serializer(self):
-        return (
-            super()
-            .serializer().actions('edit')
-            .fieldset("Dados Gerais", (("nome", "cnes"),))
-            .fieldset("Endereço", (("cep", "bairro"), "logradouro", ("numero", "municipio")))
-            .fieldset("Geolocalização", (("latitude", "longitude"), 'get_mapa'))
-            .queryset("Profissionais de Saúde", 'get_profissionais_saude')
-        )
-
-    def formfactory(self):
-        return (
-            super()
-            .formfactory()
-            .fieldset("Dados Gerais", (("nome", "cnes"),))
-            .fieldset("Endereço", (("cep", "bairro"), "logradouro", ("numero", "municipio")))
-            .fieldset("Geolocalização", (("latitude", "longitude"),))
-        )
-
-    def __str__(self):
-        return self.nome
-    
-    @meta()
-    def get_foto(self):
-        return Image(self.foto, placeholder='/static/images/sus.png', width='auto', height='auto')
-    
-    @meta('Mapa')
-    def get_mapa(self):
-        return Map(self.latitude, self.longitude) if self.latitude and self.longitude else None
-    
-    @meta('Profissionais de Saúde')
-    def get_profissionais_saude(self):
-        return self.profissionalsaude_set.all().actions('cadastrarprofissionalsaudeunidade', 'editarprofissionalsaude', 'visualizarprofissionalsaude')
-    
-    @meta('Quantidade de Profissionais')
-    def get_qtd_profissionais_saude(self):
-        return self.profissionalsaude_set.count()
-    
 
 class EspecialidadeQuerySet(models.QuerySet):
     def all(self):
@@ -377,6 +304,85 @@ class PessoaFisica(models.Model):
         return None
 
 
+class UnidadeQuerySet(models.QuerySet):
+    def all(self):
+        return (
+            self.search("cnes", "nome")
+            .fields("foto", "get_qtd_profissionais_saude")
+            .filters("municipio__estado", "municipio").cards()
+        )
+
+@role('gu', username='gestores__cpf', unidade='pk')
+@role('ou', username='operadores__cpf', unidade='pk')
+class Unidade(models.Model):
+    foto = models.ImageField(
+        verbose_name="Foto", null=True, blank=True, upload_to="unidades", width=300
+    )
+
+    cnes = models.CharField(verbose_name="CNES", max_length=12, null=True, blank=True)
+    nome = models.CharField(max_length=100)
+    municipio = models.ForeignKey(
+        Municipio, on_delete=models.CASCADE
+    )
+
+    logradouro = models.CharField(verbose_name='Logradouro', max_length=120, null=True, blank=True)
+    numero = models.CharField(verbose_name='Número', max_length=10, null=True, blank=True)
+    bairro = models.CharField(verbose_name='Bairro', max_length=40, null=True, blank=True)
+    cep = models.CharField(verbose_name='CEP', max_length=10, null=True, blank=True)
+
+    latitude = models.CharField(verbose_name="Latitude", null=True, blank=True)
+    longitude = models.CharField(verbose_name="Longitude", null=True, blank=True)
+
+    gestores = models.ManyToManyField(PessoaFisica, verbose_name="Gestores", blank=True, related_name='r3')
+    operadores = models.ManyToManyField(PessoaFisica, verbose_name="Operadores", blank=True, related_name='r4')
+
+    objects = UnidadeQuerySet()
+
+    class Meta:
+        icon = "building"
+        verbose_name = "Unidade de Saúde"
+        verbose_name_plural = "Unidades de Saúde"
+
+    def serializer(self):
+        return (
+            super()
+            .serializer().actions('edit')
+            .fieldset("Dados Gerais", (("nome", "cnes"), 'gestores', 'operadores'))
+            .fieldset("Endereço", (("cep", "bairro"), "logradouro", ("numero", "municipio")))
+            .fieldset("Geolocalização", (("latitude", "longitude"), 'get_mapa'))
+            .queryset("Profissionais de Saúde", 'get_profissionais_saude')
+        )
+
+    def formfactory(self):
+        return (
+            super()
+            .formfactory()
+            .fieldset("Dados Gerais", (("nome", "cnes"), 'gestores:cadastrarpessoafisica', 'operadores:cadastrarpessoafisica'))
+            .fieldset("Endereço", (("cep", "bairro"), "logradouro", ("numero", "municipio")))
+            .fieldset("Geolocalização", (("latitude", "longitude"),))
+        )
+
+    def __str__(self):
+        return self.nome
+    
+    @meta()
+    def get_foto(self):
+        return Image(self.foto, placeholder='/static/images/sus.png', width='auto', height='auto')
+    
+    @meta('Mapa')
+    def get_mapa(self):
+        return Map(self.latitude, self.longitude) if self.latitude and self.longitude else None
+    
+    @meta('Profissionais de Saúde')
+    def get_profissionais_saude(self):
+        return self.profissionalsaude_set.all().actions('cadastrarprofissionalsaudeunidade', 'editarprofissionalsaude', 'visualizarprofissionalsaude')
+    
+    @meta('Quantidade de Profissionais')
+    def get_qtd_profissionais_saude(self):
+        return self.profissionalsaude_set.count()
+    
+
+
 class NucleoQuerySet(models.QuerySet):
     def all(self):
         return self.fields('nome', 'gestores', 'operadores', 'get_qtd_profissonais_saude').actions('agendanucleo').cards()
@@ -466,7 +472,7 @@ class ProfissionalSaudeQueryset(models.QuerySet):
             self.search("pessoa_fisica__nome", "pessoa_fisica__cpf")
             .filters("nucleo", "unidade", "especialidade",)
             .fields("get_estabelecimento", "especialidade")
-            .actions('definirhorarioprofissionalsaude')
+            .actions('definirhorarioprofissionalsaude', 'alteraragendaprofissionalsaude')
         ).cards()
 
 @role('ps', username='pessoa_fisica__cpf')
@@ -579,7 +585,7 @@ class ProfissionalSaude(models.Model):
         return (
             super()
             .serializer()
-            .actions("agendaprofissionalsaude", "alteraragendaprofissionalsaude", "definirhorarioprofissionalsaude", "editarprofissionalsaude")
+            .actions("editarprofissionalsaude", "definirhorarioprofissionalsaude", "alteraragendaprofissionalsaude")
             .fieldset("Dados Gerais", (("pessoa_fisica"),))
             .fieldset("Dados Profissionais", (("especialidade", "get_estabelecimento"), ("conselho_profissional", "registro_profissional"), ("conselho_especialista", "registro_especialista"),),)
             .group()

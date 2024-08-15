@@ -10,10 +10,12 @@ application:
   oauth: {}
   groups:
     a: Administrador
-    g: Gestor de Unidade Organizacional
-    o: Operador de Unidade Organizacional
+    g: Gestor de Núcleo
+    o: Operador de Núcleo
     ps: Profissinal de Saúde
     p: Paciente
+    gu: Gestor de Unidade
+    ou: Operador de Unidade
   index: dashboard
   dashboard:
     toolbar:
