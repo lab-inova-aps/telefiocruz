@@ -1,0 +1,54 @@
+<img width="25" src="{{ logo }}"/>   
+<p align="right">
+    <b>Dr(a)</b> {{ atendimento.profissional.pessoa_fisica.nome }}<br>
+    <font color="gray">{{ atendimento.profissional.get_registro_profissional }}</font>
+</p>
+
+<br><br>
+
+
+<p align="center" width="80%">
+    <b>PRESCRIÇÃO MÉDICA</b>
+</p>
+
+<p><br><hr><br></p>
+
+<table width="100%" style="width:100%">
+    <tr>
+        <td><b>Nome do Paciente:</b></td>
+        <td colspan="3">{{ atendimento.paciente.nome }}</td>
+    </tr>
+    <tr>
+        <td><b>Sexo:</b></td>
+        <td>{{ atendimento.paciente.sexo }}</td>
+        <td><b>Nascimento:</b></td>
+        <td>{{ atendimento.paciente.data_nascimento|date:"SHORT_DATE_FORMAT" }}</td>
+    </tr>
+    <tr>
+    </tr>
+    {% if 1 and atendimento.paciente.endereco %}
+    <tr>
+        <td><b>Endereço:</b></td>
+        <td colspan="3">{{ atendimento.paciente.get_endereco }}</td>
+    </tr>
+    {% endif %}
+</table>
+
+<br>
+
+<ol>
+    {% for nome, orientacao in medicamentos %}
+        {% if nome %}
+        <li>
+            <b>{{ nome }}</b><br>
+            {{ orientacao }}<br><br>
+        </li>
+        {% endif %}
+    {% endfor %}
+</ol>
+
+<br><br><br><br><br><br><br><br>
+<p align="right">
+    <b>{{ atendimento.unidade.municipio }}</b>, {{ data_hora }}
+</p>
+

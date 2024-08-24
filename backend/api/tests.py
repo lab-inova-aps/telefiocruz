@@ -1,5 +1,14 @@
 from datetime import datetime, timedelta
 from slth.selenium import SeleniumTestCase
+from django.test import TestCase
+from slth.pdf import PdfWriter
+
+class DocumentosTestCase(TestCase):
+    def test(self):
+        writter = PdfWriter()
+        writter.render('documentos/atestado.html', {})
+        writter.save('/tmp/atestado.pdf')
+
 class IntegrationTestCase(SeleniumTestCase):
     
     def proxima_hora(self):
@@ -265,7 +274,7 @@ class IntegrationTestCase(SeleniumTestCase):
             self.enter('Dúvida/Queixa', 'O paciente se queixa de...')
             self.choose('CID', 'Gripe')
             self.choose('CIAP', 'Febre')
-            self.click('Fafá de Belém (CPF: 779.067.860-41 / CRM: CRM/RN 46677816028)')
+            self.click('Fafá de Belém (CPF: 779.067.860-41 / CRM: CRM 46677816028)')
             self.click("Noite")
             self.wait()
             self.click((self.proxima_hora() + timedelta(minutes=20)).strftime('%d/%m/%Y %H:%M'))
@@ -347,8 +356,8 @@ class IntegrationTestCase(SeleniumTestCase):
             self.enter('Dúvida/Queixa', 'O paciente se queixa de...')
             self.choose('CID', 'Gripe')
             self.choose('CIAP', 'Febre')
-            self.click('Fafá de Belém (CPF: 779.067.860-41 / CRM: CRM/RN 46677816028)')
-            self.click('Fábio Júnir (CPF: 385.895.870-02 / CRM: CRM/RN 38589587002)')
+            self.click('Fafá de Belém (CPF: 779.067.860-41 / CRM: CRM 46677816028)')
+            self.click('Fábio Júnir (CPF: 385.895.870-02 / CRM: CRM 38589587002)')
             self.click('Noite')
             self.wait()
             self.click((self.proxima_hora() + timedelta(minutes=40)).strftime('%d/%m/%Y %H:%M'))

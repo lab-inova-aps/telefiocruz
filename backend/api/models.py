@@ -5,23 +5,18 @@ from uuid import uuid1
 from PIL import Image as PILImage
 import requests
 from django.conf import settings
-from slth.factory import FormFactory
-from slth.serializer import Serializer
-from . import signer
-from random import randint
+from .signer import VidaasPdfSigner
 from datetime import date, datetime, timedelta, time
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
-from django.utils.safestring import mark_safe
 from django.utils.timesince import timesince
 from slth import printer
+from slth.pdf import PdfWriter
 from django.core.files.base import ContentFile
-from django.core.signing import Signer
 from slth.db import models, meta, role
 from slth.models import User, RoleFilter
 from slth.components import Scheduler, FileLink, Image, Map, Text, Badge, TemplateContent
-from time import sleep
 from slth.printer import qrcode_base64
 
 
@@ -1000,7 +995,7 @@ class Atendimento(models.Model):
     
     @meta('Anexos')
     def get_anexos(self):
-        return self.anexoatendimento_set.fields('get_nome_arquivo', 'autor', 'assinaturas', 'get_arquivo')
+        return self.anexoatendimento_set.fields('get_nome_arquivo', 'autor', 'assinaturas', 'get_arquivo').actions('delete')
     
     @meta('Anexos')
     def get_anexos_webconf(self):
@@ -1074,10 +1069,25 @@ class Atendimento(models.Model):
         signature.add_signer('{} - {}'.format(self.profissional.pessoa_fisica.nome, self.profissional.get_registro_profissional()), None)
         autor = PessoaFisica.objects.get(cpf=cpf)
         anexo = AnexoAtendimento(atendimento=self, autor=autor, nome=nome)
-        dados.update(data_hora=date.today())
-        content = printer.to_pdf(dict(atendimento=self, impressao=False, **dados), template, signature=signature)
-        anexo.arquivo.save('{}.pdf'.format(uuid1().hex), ContentFile(content.getvalue()))
+        dados.update(atendimento=self, data_hora=date.today(), logo=f'{settings.SITE_URL}/static/images/icon-black.svg')
+        # content = printer.to_pdf(dict(atendimento=self, impressao=False, **dados), template, signature=signature)
+        # anexo.arquivo.save('{}.pdf'.format(uuid1().hex), ContentFile(content.getvalue()))
+        # anexo.save()
+        
+        writter = PdfWriter()
+        writter.render(template, dados)
+        anexo.arquivo.save('{}.pdf'.format(uuid1().hex), ContentFile(writter.pdf.output()))
         anexo.save()
+
+    def finalizar(self, authorization_code=None):
+        cpf = '04770402414' or self.profissional.pessoa_fisica.cpf.replace('.', '').replace('-', '')
+        for anexo in self.anexoatendimento_set.all():
+            signer = VidaasPdfSigner(anexo.arquivo.path, f'{self.profissional.pessoa_fisica.nome}:{cpf}')
+            if authorization_code:
+                signer.authorize(authorization_code)
+            signer.sign(anexo.arquivo.path)
+            anexo.checar_assinaturas()
+
 
 class AnexoAtendimento(models.Model):
     atendimento = models.ForeignKey(

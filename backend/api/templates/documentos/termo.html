@@ -1,0 +1,67 @@
+<img width="25" src="{{ logo }}"/>  
+
+<p align="center">
+        <b>{{ atendimento.tipo|upper }}</b> 
+        <b>TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO<br>PARA ATENDIMENTO A DISTÂNCIA</b>
+</p>
+
+<p><br><br><hr><br></p>
+
+<p align="justify">
+    {% if atendimento.paciente.nome_responsavel and atendimento.paciente.cpf_responsavel %}
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        Eu, <b>{{ atendimento.paciente.nome }}</b> inscrito no CPF sob o nº <b>{{ atendimento.paciente.cpf_responsavel }}</b>,
+        responsável legal pelo (a) paciente <b>{{ atendimento.paciente.nome }}</b>, inscrito no CPF e/ou RG sob o nº {{ atendimento.paciente.cpf }}
+    {% else %}
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        Eu, <b>{{ atendimento.paciente.nome }}</b> inscrito no CPF sob o nº <b>{{ atendimento.paciente.cpf }}</b>,
+    {% endif %}
+    dou expressa e plena autorização ao médico assistente <b>{{ atendimento.profissional.pessoa_fisica.nome }}</b> inscrito no <b>{{ atendimento.profissional.conselho_profissional }}</b> sob o nº <b>{{ atendimento.profissional.registro_profissional }}</b>,
+    {% if atendimento.especialista_id %}
+        e ao especialista <b>{{ atendimento.especialista.pessoa_fisica.nome }}</b> inscrito no CRM sob o nº <b>{{ atendimento.profissional.registro_profissional }}</b> e RQE sob o nº <b>{{ atendimento.profissional.registro_especialista }}</b>,
+    {% endif %}
+    para realizar o atendimento de {{ atendimento.tipo|lower }} e declaro que:
+</p>
+<p><br></p>
+    <table>
+        <tr><td width="10%"></td><td width="90%">
+                1) Estou ciente quanto a Resolução n.o 2314/2022 do Conselho Federal de Medicina (CFM), que regulamenta as ações de telemedicina;
+        </td></tr>
+        <tr><td></td><td>
+                2) Estou ciente quanto a Lei 14.510, de 27 de dezembro de 2022, que autoriza e disciplina a prática da telessaúde em todo o território nacional e revoga a Lei de 15 de abril de 2020, além de alterar a 8.080, de 1990;
+        </td></tr>
+        <tr><td></td><td>
+                3) Estou ciente quanto ao direito de recusa ao atendimento na modalidade telessaúde, com a garantia do atendimento presencial sempre que solicitado;
+        </td></tr>
+        <tr><td></td><td>
+                4) Estou ciente quanto ao direito, tanto do paciente quanto do médico, optar pela interrupção do atendimento a distância;
+        </td></tr>
+        <tr><td></td><td>
+                5) Fui informado (a) que poderá ser necessário, a critério do médico, a realização de exames complementares para auxiliar no diagnóstico, assim como o envio de dados/documentos/fotos/vídeos que permitam minha identificação, uma vez que ela se faz entre médicos;
+        </td></tr>
+        <tr><td></td><td>
+                6) Fui informado (a) que poderá ser necessário o encaminhamento a um serviço de pronto atendimento, a depender da hipótese diagnóstica;
+        </td></tr>
+        <tr><td></td><td>
+                7) Estou ciente de que a teleinterconsulta é individual e não garante o atendimento por tempo indeterminado ou a disposição do médico especialista em outros horários não acordados entre as partes;
+        </td></tr>
+        <tr><td></td><td>
+                8) Estou ciente que a teleinterconsulta será realizada pela plataforma determinada pelo serviço de saúde com dados armazenados em prontuário médico sob guarda da Secretaria Municipal de Saúde de Campo Grande/MS e será cumprida as exigências preconizadas pelo Conselho Federal de Medicina;
+        </td></tr>
+        <tr><td></td><td>
+                9) Autorizo o tratamento pela Secretaria Municipal de Saúde dos dados pessoais, inclusive imagens e dados pessoais sensíveis, colhidos durante o(s) atendimento(s), para as finalidades necessárias à prestação dos serviços de saúde, nos termos do art. 7o da Lei 13.709, de 14 de agosto de 2018 (Lei Geral de Proteção de Dados Pessoais).
+        </td></tr>
+    </table>
+<br>
+<p align="justify">
+    &nbsp;&nbsp;&nbsp;&nbsp;
+    Por fim, declaro ter lido as orientações contidas no presente instrumento, as quais entendi completamente e aceito, expressando o meu pleno consentimento para a realização da teleinterconsulta.
+</p>
+<br><br><br><br>
+<p align="center">
+    CÓDIGO DO CONSENTIMENTO: <b>9867</b>
+</p>
+<br><br><br><br>
+<p align="right">
+    <b>{{ atendimento.unidade.municipio }}</b>, {{ data_hora }}
+</p>

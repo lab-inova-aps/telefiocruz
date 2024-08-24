@@ -187,3 +187,13 @@ if os.environ.get('POSTGRES_HOST') and 'test' not in sys.argv:
             'PORT': os.environ.get('POSTGRES_PORT', '5432'),
         }
     }
+
+if os.path.exists('/Users/breno'):
+ CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": "/tmp/django_cache",
+        "TIMEOUT": 60,
+        "OPTIONS": {"MAX_ENTRIES": 1000},
+    }
+ }

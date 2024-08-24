@@ -1,0 +1,36 @@
+<img width="25" src="{{ logo }}"/>  
+<p align="right">
+    <b>Dr(a)</b> {{ atendimento.profissional.pessoa_fisica.nome }}<br>
+    <font color="gray">{{ atendimento.profissional.get_registro_profissional }}</font>
+</p>
+<br><br>
+
+<p align="center" width="80%">
+    <b>ATESTADO MÉDICO</b>
+</p>
+
+<p><br><hr><br></p>
+
+
+<p align="justify">
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    Atesto para os devidos fins a pedido do interessado que <b>{{  atendimento.paciente.nome }}, </b>
+    {% if atendimento.paciente.rg %}
+        R.G. <b>{{ atendimento.paciente.rg }}, </b>
+    {% endif %}
+    {% if atendimento.paciente.cpf %}
+        CPF <b>{{ atendimento.paciente.cpf }}, </b>
+    {% endif %}
+    {% if 0 and atendimento.paciente.endereco %}
+        residente e domiciliado(a) à <b>{{ atendimento.paciente.get_endereco }}, </b>
+    {% endif %}
+    foi submetido à consulta médica nesta data, sendo portador de afecção <b>CID-10
+    {% for cid in atendimento.cid.all %}{{ cid.codigo }}{% endfor %}.</b>
+    Como consequência, deverá permanecer afastado de suas atividades laborais por um período de <b>{{  quantidade_dias}} dia(s)</b> a partir desta data.
+</p>
+
+<br><br><br><br>
+<p align="right">
+    <b>{{ atendimento.unidade.municipio }}</b>, {{ data_hora }}
+</p>
+
