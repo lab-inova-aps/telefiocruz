@@ -588,7 +588,7 @@ class ProfissionalSaude(models.Model):
                 .fieldset("Horário de Atendimento", ("get_horarios_atendimento",))
                 .fieldset("Agenda", ("get_agenda",))
             .parent()
-            #.fieldset("Configuração", ("zoom_token",))
+            .fieldset("Configuração de WebConf", ("is_zoom_configurado", 'get_zoom_token'), roles=['a'])
         )
 
     def __str__(self):
@@ -669,6 +669,16 @@ class ProfissionalSaude(models.Model):
         if self.zoom_token is None:
            self.zoom_token = os.environ.get('ZOOM_TOKEN') 
         super().save(*args, **kwargs)
+
+    @meta('Zoom Configurado?')
+    def is_zoom_configurado(self):
+        return self.zoom_token is not None
+    
+    @meta('Token do Zoom')
+    def get_zoom_token(self):
+        if self.zoom_token:
+            return '{}...{}'.format(self.zoom_token[0:20], self.zoom_token[-20:])
+        return '-'
 
 
 class HorarioAtendimento(models.Model):
@@ -757,7 +767,7 @@ class AtendimentoQuerySet(models.QuerySet):
     
     @meta('Atendimentos por Unidade e Especialidade')
     def get_total_por_area_e_unidade(self):
-        return self.counter('especialidade__area', 'unidade')
+        return self.counter('especialidade__area__especialidade', 'unidade')
     
     def agenda(self, profissional=None, especialista=None, is_teleconsulta=False, is_proprio_profissional=False):
         selectable = []
@@ -880,7 +890,6 @@ class Atendimento(models.Model):
         verbose_name_plural = "Atendimentos"
 
     def check_webconf(self):
-        from . import zoom
         if self.limite_webconf is None or self.limite_webconf < datetime.now():
             number, password, limit = self.profissional.criar_sala_virtual('Atendimento #{}'.format(self.id))
             self.numero_webconf = number

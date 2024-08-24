@@ -654,7 +654,7 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
             self.serializer().actions('anexararquivo', 'emitiratestado', 'solicitarexames', 'prescrevermedicamento')
             .endpoint('VideoChamada', 'videochamada', wrap=False)
             .queryset('Anexos', 'get_anexos_webconf')
-            .endpoint('Condutas e Enaminhamentos', 'registrarecanminhamentoscondutas', wrap=False)
+            .endpoint('Condutas e Encaminhamentos', 'registrarecanminhamentoscondutas', wrap=False)
         )
     
     def check_permission(self):
@@ -690,7 +690,7 @@ class RegistrarEcanminhamentosCondutas(endpoints.ChildEndpoint):
 
     class Meta:
         icon = 'file-signature'
-        verbose_name = 'Registrar Enaminhamento'
+        verbose_name = 'Registrar Encaminhamento'
 
     def get(self):
         responsavel = ProfissionalSaude.objects.get(
