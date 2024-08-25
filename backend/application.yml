@@ -30,6 +30,7 @@ application:
       - proximosatendimentospaciente
       - minhaagenda
     boxes:
+      - abrirsala
       - configurarzoom
       - pessoasfisicas
       - nucleos

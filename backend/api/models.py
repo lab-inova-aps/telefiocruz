@@ -559,7 +559,8 @@ class ProfissionalSaude(models.Model):
             number = response.get('id')
             password = response.get('encrypted_password')
             limit = datetime.now() + timedelta(minutes=40)
-        return number, password, limit
+            return number, password, limit
+        return None
 
     def formfactory(self):
         return (

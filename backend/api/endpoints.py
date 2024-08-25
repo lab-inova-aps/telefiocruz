@@ -1,4 +1,5 @@
 import os
+import binascii
 from uuid import uuid1
 from django.core.files.base import ContentFile
 from slth import endpoints
@@ -686,6 +687,28 @@ class VideoChamada(endpoints.InstanceEndpoint[Atendimento]):
         )
 
 
+class AbrirSala(endpoints.Endpoint):
+    class Meta:
+        icon = 'chalkboard-user'
+        verbose_name = 'Abrir Sala'
+    
+    def get(self):
+        token = self.request.GET.get('token')
+        if token:
+            numero, senha = bytes.fromhex(token).decode().split(':')
+            print(numero, senha, self.request.user.username if self.request.user.is_authenticated else 'Convidado', 9999)
+            return ZoomMeet(numero, senha, self.request.user.username if self.request.user.is_authenticated else 'Convidado')
+        else:
+            profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
+            number, password, _ = profissional_saude.criar_sala_virtual(profissional_saude.pessoa_fisica.nome)
+            token = binascii.hexlify('{}:{}'.format(number, password).encode()).decode()
+            self.redirect(f'/api/abrirsala/?token={token}')
+
+    def check_permission(self):
+        profissional_saude = ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username).first()
+        return self.request.GET.get('token') or (profissional_saude and profissional_saude.zoom_token)
+
+
 class RegistrarEcanminhamentosCondutas(endpoints.ChildEndpoint):
 
     class Meta:
@@ -853,18 +876,31 @@ class ConfigurarZoom(endpoints.Endpoint):
         verbose_name = 'Configurar Zoom'
 
     def get(self):
+        profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
+        if profissional_saude.zoom_token:
+            info = 'A autorização concedida a Telefiocruz para criar video-chamadas por você será revogada.'
+        else:
+            info = 'Você será redirecionado para o site da Zoom (https://zoom.us) para autorizar a Telefiocruz criar video-chamadas por você.'
         redirect_url = '{}/app/configurarzoom/'.format(settings.SITE_URL)
         authorization_code = self.request.GET.get('code')
         if authorization_code:
             profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
             profissional_saude.configurar_zoom(authorization_code, redirect_url)
             return Response('Configuração realizada com sucesso.', redirect='/api/dashboard/')
-        return self.formfactory().info('Você será redirecionado para o site da Zoom (https://zoom.us) para autorizar-nos a criar video-chamadas por você.')
+        return self.formfactory().info(info)
 
     def post(self):
-        redirect_url = '{}/app/configurarzoom/'.format(settings.SITE_URL)
-        url = 'https://zoom.us/oauth/authorize?response_type=code&client_id={}&redirect_uri={}'.format(os.environ.get('ZOOM_API_KEY'), redirect_url)
-        self.redirect(url)
+        profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
+        if profissional_saude.zoom_token:
+            profissional_saude.zoom_token = None
+            profissional_saude.save()
+            return Response('Autorização revogada com sucesso.', redirect='/api/dashboard/')
+        else:
+            redirect_url = '{}/app/configurarzoom/'.format(settings.SITE_URL)
+            url = 'https://zoom.us/oauth/authorize?response_type=code&client_id={}&redirect_uri={}'.format(
+                os.environ.get('ZOOM_API_KEY'), redirect_url
+            )
+            self.redirect(url)
 
     def check_permission(self):
         return self.check_role('ps') or ProfissionalSaude.objects.filter(peossoa_fisica__cpf=self.request.user.username, zoom_token__isnull=True).exists()
