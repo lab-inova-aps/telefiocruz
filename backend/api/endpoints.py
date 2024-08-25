@@ -853,18 +853,18 @@ class ConfigurarZoom(endpoints.Endpoint):
         verbose_name = 'Configurar Zoom'
 
     def get(self):
-        return self.formfactory().info('Você será redirecionado para o site da Zoom (https://zoom.us/) para autorizar-nos a criar video-chamadas por você.')
-
-    def post(self):
-        authorization_code = self.request.GET.get('code')
         redirect_url = '{}/app/configurarzoom/'.format(settings.SITE_URL)
+        authorization_code = self.request.GET.get('code')
         if authorization_code:
             profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
             profissional_saude.configurar_zoom(authorization_code, redirect_url)
             return Response('Configuração realizada com sucesso.', redirect='/api/dashboard/')
-        else:
-            url = 'https://zoom.us/oauth/authorize?response_type=code&client_id={}&redirect_uri={}'.format(os.environ.get('ZOOM_API_KEY'), redirect_url)
-            self.redirect(url)
+        return self.formfactory().info('Você será redirecionado para o site da Zoom (https://zoom.us) para autorizar-nos a criar video-chamadas por você.')
+
+    def post(self):
+        redirect_url = '{}/app/configurarzoom/'.format(settings.SITE_URL)
+        url = 'https://zoom.us/oauth/authorize?response_type=code&client_id={}&redirect_uri={}'.format(os.environ.get('ZOOM_API_KEY'), redirect_url)
+        self.redirect(url)
 
     def check_permission(self):
         return self.check_role('ps') or ProfissionalSaude.objects.filter(peossoa_fisica__cpf=self.request.user.username, zoom_token__isnull=True).exists()
