@@ -849,9 +849,13 @@ class Vidaas(endpoints.Endpoint):
 
 class ConfigurarZoom(endpoints.Endpoint):
     class Meta:
+        icon = 'video'
         verbose_name = 'Configurar Zoom'
 
     def get(self):
+        return self.formfactory().info('Você será redirecionado para o site da Zoom (https://zoom.us/) para autorizar-nos a criar video-chamadas por você.')
+
+    def post(self):
         authorization_code = self.request.GET.get('code')
         redirect_url = '{}/app/configurarzoom/'.format(settings.SITE_URL)
         if authorization_code:
