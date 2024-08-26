@@ -3,13 +3,18 @@ from datetime import datetime
 from slth.pdf import PdfWriter
 from django.core.management.base import BaseCommand
 
-LOGO = '/Users/breno/Documents/Workspace/slth/examples/telessaude/backend/api/static/images/icon-black.svg'
+LOGO = '/Users/breno/Documents/Workspace/telefiocruz/backend/api/static/images/icon-black.svg'
 URL = 'http://telefiocruz.aplicativo.click/arquivo/1518eb3c61a311ef9ca22a8c307b6d2c/'
 
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        atendimento = Atendimento.objects.get(pk=44)
+        atendimento = Atendimento.objects.get(pk=43)
+
+        writter = PdfWriter()
+        writter.render('documentos/atendimento.html', dict(atendimento=atendimento, data_hora=datetime.now(), logo=LOGO))
+        writter.save('/tmp/atendimento.pdf')
+        return 
         
         writter = PdfWriter()
         writter.render('documentos/atestado.html', dict(atendimento=atendimento, data_hora=datetime.now(), quantidade_dias=5, logo=LOGO))

@@ -297,6 +297,9 @@ class PessoaFisica(models.Model):
             if self.complemento: endereco.append(self.complemento)
             return ', '.join(endereco)
         return None
+    
+    def get_atendimentos(self):
+        return self.atendimentos_paciente.all().filters('especialidade').actions('visualizaratendimento')
 
 
 class UnidadeQuerySet(models.QuerySet):
@@ -927,7 +930,7 @@ class Atendimento(models.Model):
             super()
             .serializer()
             .fields('get_tags')
-            .actions('enviarnotificacaoatendimento', 'imprimiratendimento', 'imprimirtermoconsentimento', 'anexartermoconsentimento', 'anexararquivo', 'salavirtual', 'registrarecanminhamentoscondutas', 'emitiratestado', 'solicitarexames', 'prescrevermedicamento', 'finalizaratendimento')
+            .actions('enviarnotificacaoatendimento', 'anexararquivo', 'salavirtual', 'registrarecanminhamentoscondutas', 'emitiratestado', 'solicitarexames', 'prescrevermedicamento', 'finalizaratendimento')
             .fieldset(
                 "Dados Gerais",
                 (
@@ -940,31 +943,29 @@ class Atendimento(models.Model):
             .group()
                 .section('Detalhamento')
                     .fieldset(
-                        "Dados do Paciente", (
-                            ("cpf", "nome"),
-                            ("sexo", "nome_social"),
-                            ("data_nascimento", "get_idade"),
-                            ("telefone", "email")
-                        ), attr="paciente", actions=('atualizarpaciente',)
-                    )
-                    .fieldset(
-                        "Profissional Responsável", (
-                            ("pessoa_fisica__nome", "pessoa_fisica__cpf"),
-                            ("get_registro_profissional", "get_registro_especialista"),
-                        ), attr="profissional"
-                    )
-                    .fieldset(
-                        "Dados do Especialista", (
-                            ("pessoa_fisica__nome", "pessoa_fisica__cpf"),
-                            ("especialidade", "registro_especialista"),
-                        ), attr="especialista", condition='especialista'
-                    )
-                    .fieldset(
                         "Dados da Consulta", (
                             ("assunto", "especialidade"),
                             "duvida",
                             ("cid", "ciap"),
                         )
+                    )
+                    .fieldset(
+                        "Dados do Paciente", (
+                            ("cpf", "nome"),
+                            ("sexo", "nome_social"),
+                            ("data_nascimento", "get_idade"),
+                            ("telefone", "email")
+                        ), attr="paciente", actions=('atualizarpaciente', 'historicopaciente')
+                    )
+                    .fieldset(
+                        "Profissional Responsável", (
+                            ("pessoa_fisica__nome", "get_registro_profissional", "get_registro_especialista"),
+                        ), attr="profissional"
+                    )
+                    .fieldset(
+                        "Dados do Especialista", (
+                            ("pessoa_fisica__nome", "get_registro_profissional", "get_registro_especialista"),
+                        ), attr="especialista", condition='especialista'
                     )
                     .queryset('Anexos', 'get_anexos')
                 .parent()
@@ -1014,7 +1015,7 @@ class Atendimento(models.Model):
     @meta('Encaminhamentos e Condutas')
     def get_condutas_ecaminhamentos(self):
         return self.encaminhamentoscondutas_set.fields(
-            'data', 'subjetivo', 'objetivo', 'avaliacao', 'plano', 'comentario', 'encaminhamento', 'conduta'
+            'data', 'subjetivo', 'objetivo', 'avaliacao', 'plano', 'comentario'
         ).timeline()
 
     @meta('Duração')
@@ -1075,14 +1076,13 @@ class Atendimento(models.Model):
                 self.horarios_especialista.add(self.especialista.horarioprofissionalsaude_set.get(data_hora=self.agendado_para + timedelta(minutes=minuto)))
   
     def criar_anexo(self, nome, template, cpf, dados):
+        AnexoAtendimento.objects.filter(atendimento=self, nome=nome).delete()
         signature = printer.Signature(date=datetime.now(), validation_url='https://validar.iti.gov.br/')
         signature.add_signer('{} - {}'.format(self.profissional.pessoa_fisica.nome, self.profissional.get_registro_profissional()), None)
         autor = PessoaFisica.objects.get(cpf=cpf)
         anexo = AnexoAtendimento(atendimento=self, autor=autor, nome=nome)
         dados.update(atendimento=self, data_hora=date.today(), logo=f'{settings.SITE_URL}/static/images/icon-black.svg')
-        # content = printer.to_pdf(dict(atendimento=self, impressao=False, **dados), template, signature=signature)
-        # anexo.arquivo.save('{}.pdf'.format(uuid1().hex), ContentFile(content.getvalue()))
-        # anexo.save()
+        
         
         writter = PdfWriter()
         writter.render(template, dados)
@@ -1314,7 +1314,7 @@ class TipoExame(models.Model):
     nome = models.CharField(verbose_name='Nome')
     detalhe = models.CharField(verbose_name='Detalhe', blank=True, null=True)
     profissional_saude = models.ForeignKey(ProfissionalSaude, verbose_name='Profissional de Saúde', on_delete=models.CASCADE, null=True, blank=True)
-    tuss = models.CharField(verbose_name='TUSS', null=True)
+    codigo = models.CharField(verbose_name='Código', null=True)
 
     class Meta:
         verbose_name = 'Tipo de Exame'

@@ -21,11 +21,11 @@
     {% if atendimento.paciente.cpf %}
         CPF <b>{{ atendimento.paciente.cpf }}, </b>
     {% endif %}
-    {% if 0 and atendimento.paciente.endereco %}
+    {% if informar_endereco and atendimento.paciente.endereco %}
         residente e domiciliado(a) à <b>{{ atendimento.paciente.get_endereco }}, </b>
     {% endif %}
-    foi submetido à consulta médica nesta data, sendo portador de afecção <b>CID-10
-    {% for cid in atendimento.cid.all %}{{ cid.codigo }}{% endfor %}.</b>
+    foi submetido à consulta médica nesta data{% if informar_cid %}, sendo portador de afecção <b>CID-10
+    {% for cid in atendimento.cid.all %}{{ cid.codigo }}{% endfor %}</b>{% endif %}.
     Como consequência, deverá permanecer afastado de suas atividades laborais por um período de <b>{{  quantidade_dias}} dia(s)</b> a partir desta data.
 </p>
 

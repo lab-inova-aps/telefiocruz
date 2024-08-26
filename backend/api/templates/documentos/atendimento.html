@@ -1,0 +1,128 @@
+<img width="25" src="{{ logo }}"/>  
+<p align="right">
+    <b>Dr(a)</b> {{ atendimento.profissional.pessoa_fisica.nome }}<br>
+    <font color="gray">{{ atendimento.profissional.get_registro_profissional }}</font>
+</p>
+<br><br>
+<p align="center" width="80%">
+    <b>Atendimento</b>
+</p>
+
+<p><br><hr><br></p>
+
+<table width="100%">
+    <tr>
+        <td><b>Nome do Paciente:</b></td>
+        <td colspan="3">{{ atendimento.paciente.nome }}</td>
+    </tr>
+    <tr>
+        <td><b>Sexo:</b></td>
+        <td>{{ atendimento.paciente.sexo }}</td>
+        <td><b>Nascimento:</b></td>
+        <td>{{ atendimento.paciente.data_nascimento|date:"SHORT_DATE_FORMAT" }}</td>
+    </tr>
+    <tr>
+    </tr>
+    {% if atendimento.paciente.endereco %}
+    <tr>
+        <td><b>Endereço:</b></td>
+        <td colspan="3">{{ atendimento.paciente.get_endereco }}</td>
+    </tr>
+    {% endif %}
+</table>
+
+<p><hr><br></p>
+
+<p align="center"><b>DADOS GERAIS</b></p>
+<p><br></p>
+<table width="100%">
+    <tr>
+        <td><b>Tipo:</b></td>
+        <td>{{ atendimento.tipo }}</td>
+        <td><b>Unidade:</b></td>
+        <td>{{ atendimento.unidade }}</td>
+    </tr>
+    <tr>
+        <td><b>Município:</b></td>
+        <td>{{ atendimento.unidade.municipio }}</td>
+        <td><b>Duração:</b></td>
+        <td>{{ atendimento.duracao }} minutos</td>
+    </tr>
+    <tr>
+        <td><b>Início:</b></td>
+        <td>{{ atendimento.agendado_para|date:"d/m/Y H:i" }}</td>
+        <td><b>Fim:</b></td>
+        <td>{{ atendimento.finalizado_em|date:"d/m/Y H:i" }}</td>
+    </tr>
+    <tr>
+        <td><b>URL Externa:</b></td>
+        <td colspan="3">{{ atendimento.get_url_externa.url }}</td>
+    </tr>
+</table>
+
+<p align="center"><b>DETALHE DA CONSULTA</b></p>
+<p><br></p>
+<table width="100%">
+    <tr>
+        <td><b>Motivo:</b></td>
+        <td>{{ atendimento.assunto }}</td>
+        <td><b>Especialidade:</b></td>
+        <td>{{ atendimento.especialidade }}</td>
+    </tr>
+    <tr>
+        <td><b>Dúvida/Queixa:</b></td>
+        <td colspan="3">{{ atendimento.duvida }}</td>
+    </tr>
+    <tr>
+        <td><b>CID:</b></td>
+        <td>{% for cid in atendimento.cid.all %}{{ cid.codigo }}{% endfor %}</td>
+        <td><b>CIAP:</b></td>
+        <td>{% for ciap in atendimento.ciap.all %}{{ ciap.codigo }}{% endfor %}</td>
+    </tr>
+</table>
+{% if atendimento.especialista %}
+    <p align="center"><b>ESPECIALISTA</b></p>
+    <p><br></p>
+    <table width="100%">
+        <tr>
+            <td><b>Especialista:</b></td>
+            <td colspan="3">{{ atendimento.profissional.pessoa_fisica.nome }}</td>
+        </tr>
+        <tr>
+            <td><b>Registro Profissional:</b></td>
+            <td>{{ atendimento.profissional.get_registro_profissional }}</td>
+            <td><b>Registro Especialista:</b></td>
+            <td>{{ atendimento.profissional.get_registro_especialista }}</td>
+        </tr>
+    </table>
+{% endif %}
+
+{% if atendimento.get_condutas_ecaminhamentos.exists %}
+<p align="center"><b>CONDUTA E ENCAMINHAMENTOS</b></p>
+    {% for encaminhamento in atendimento.get_condutas_ecaminhamentos.all %}
+    <table>
+        <tr>
+            <td><b>S - subjetivo:</b></td>
+            <td colspan="3">{{ encaminhamento.subjetivo }}</td>
+        </tr>
+        <tr>
+            <td><b>O - objetivo:</b></td>
+            <td colspan="3">{{ encaminhamento.objetivo }}</td>
+        </tr>
+        <tr>
+            <td><b>A - avaliacao:</b></td>
+            <td colspan="3">{{ encaminhamento.avaliacao }}</td>
+        </tr>
+        <tr>
+            <td><b>P - plano:</b></td>
+            <td colspan="3">{{ encaminhamento.plano }}</td>
+        </tr>
+    </table>
+    {% endfor %}
+{% endif %}
+
+<br><br><br><br>
+<p align="right">
+    <b>{{ atendimento.unidade.municipio }}</b>, {{ data_hora }}
+</p>
+

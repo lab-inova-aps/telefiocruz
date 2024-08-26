@@ -10,6 +10,7 @@ from slth import forms
 from .utils import buscar_endereco
 from slth import printer
 from slth.tests import RUNNING_TESTING
+from slth.endpoints import Serializer
 from .mail import send_mail
 import requests
 import base64
@@ -199,6 +200,7 @@ class CadastrarPessoaFisica(endpoints.AddEndpoint[PessoaFisica]):
 
 class AtualizarPaciente(endpoints.EditEndpoint[PessoaFisica]):
     class Meta:
+        icon = 'pencil'
         verbose_name = 'Atualizar Dados do Paciente'
     
     def check_permission(self):
@@ -733,6 +735,7 @@ class RegistrarEcanminhamentosCondutas(endpoints.ChildEndpoint):
         )
     
     def post(self):
+        self.source.criar_anexo('Atendimento', 'documentos/atendimento.html', self.source.profissional.pessoa_fisica.cpf, {})
         self.redirect(f'/api/visualizaratendimento/{self.source.id}/')
 
     def check_permission(self):
@@ -903,56 +906,7 @@ class ConfigurarZoom(endpoints.Endpoint):
             self.redirect(url)
 
     def check_permission(self):
-        return self.check_role('ps') or ProfissionalSaude.objects.filter(peossoa_fisica__cpf=self.request.user.username, zoom_token__isnull=True).exists()
-
-
-class ImprimirAtendimento(endpoints.InstanceEndpoint[Atendimento]):
-    class Meta:
-        modal = True
-        verbose_name = 'Imprimir Atendimento'
-
-    def get(self):
-        self.render(dict(nome='X', qrcode=(printer.qrcode_base64('https://zoom.us/'))), pdf=True)
-
-class ImprimirTermoConsentimento(endpoints.InstanceEndpoint[Atendimento]):
-    class Meta:
-        icon = 'print'
-        modal = False
-        verbose_name = 'Imprimir Termo de Consentimento'
-
-    def get(self):
-        self.render(dict(atendimento=self.instance, impressao=True), 'termoconsentimento.html', pdf=True)
-
-    def check_permission(self):
-        return self.check_role('ps', 'o')
-
-
-class AnexarTermoConsentimento(endpoints.InstanceEndpoint[Atendimento]):
-    imagem = forms.ImageField(label='Imagem', width=800)
-    class Meta:
-        icon = 'upload'
-        modal = False
-        verbose_name = 'Anexar Termo de Consentimento'
-
-    def get(self):
-        return self.formfactory().fields('imagem')
-
-    def post(self):
-        termo_consentimento = self.instance.get_termo_consentimento()
-        if termo_consentimento:
-            termo_consentimento.delete()
-        imagem = printer.image_base64(self.request.FILES['imagem'].read())
-        signature = printer.Signature(date=datetime.now(), validation_url='https://validar.iti.gov.br/')
-        signature.add_signer('{} - {}'.format(self.instance.profissional.pessoa_fisica.nome, self.instance.profissional.get_registro_profissional()), None)
-        autor = PessoaFisica.objects.filter(cpf=self.request.user.username).first()
-        anexo = AnexoAtendimento(atendimento=self.instance, autor=autor, nome='Termo de Consentimento')
-        content = printer.to_pdf(dict(imagem=imagem), 'termoconsentimento2.html', signature=signature)
-        anexo.arquivo.save('{}.pdf'.format(uuid1().hex), ContentFile(content.getvalue()))
-        anexo.save()
-        self.redirect(f'/api/visualizaratendimento/{self.instance.pk}/')
-
-    def check_permission(self):
-        return self.check_role('ps', 'o')
+        return self.check_role('ps') or ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username, zoom_token__isnull=True).exists()
 
 
 class TeleAtendimento(endpoints.PublicEndpoint):
@@ -975,6 +929,9 @@ class TeleAtendimento(endpoints.PublicEndpoint):
 
 class EmitirAtestado(endpoints.InstanceEndpoint[Atendimento]):
     quantidade_dias = forms.IntegerField(label='Quantidade de Dias')
+    informar_endereco = forms.BooleanField(label='Informar Endereço', required=False)
+    informar_cid = forms.BooleanField(label='Informar CID', required=False)
+
     
     class Meta:
         icon = 'file'
@@ -982,16 +939,34 @@ class EmitirAtestado(endpoints.InstanceEndpoint[Atendimento]):
         verbose_name = 'Emitir Atestado'
 
     def get(self):
-        return self.formfactory().fields('quantidade_dias')
+        return self.formfactory().fields(
+            'quantidade_dias', ('informar_endereco', 'informar_cid')
+        ).initial(informar_endereco=False, informar_cid=False)
     
     def post(self):
-        dados = dict(quantidade_dias=self.cleaned_data['quantidade_dias'])
+        dados = dict(
+            quantidade_dias=self.cleaned_data['quantidade_dias'],
+            informar_endereco=self.cleaned_data['informar_endereco'],
+            informar_cid=self.cleaned_data['informar_cid'],
+        )
         self.instance.criar_anexo('Atestado Médico', 'documentos/atestado.html', self.request.user.username, dados)
         return super().post()
     
     def check_permission(self):
         return self.check_role('ps')
     
+
+class HistoricoPaciente(endpoints.InstanceEndpoint[PessoaFisica]):
+    class Meta:
+        icon = 'history'
+        verbose_name = 'Histórico do Paciente'
+
+    def get(self):
+        return Serializer(self.instance).queryset('Histórico de Atendimentos', 'get_atendimentos')
+
+    def check_permission(self):
+        return self.check_role('ps')
+
 
 class SolicitarExames(endpoints.InstanceEndpoint[Atendimento]):
     tipos = forms.ModelMultipleChoiceField(TipoExame.objects)

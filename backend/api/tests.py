@@ -1,13 +1,7 @@
 from datetime import datetime, timedelta
 from slth.selenium import SeleniumTestCase
 from django.test import TestCase
-from slth.pdf import PdfWriter
 
-class DocumentosTestCase(TestCase):
-    def test(self):
-        writter = PdfWriter()
-        writter.render('documentos/atestado.html', {})
-        writter.save('/tmp/atestado.pdf')
 
 class IntegrationTestCase(SeleniumTestCase):
     
@@ -280,10 +274,6 @@ class IntegrationTestCase(SeleniumTestCase):
             self.click((self.proxima_hora() + timedelta(minutes=20)).strftime('%d/%m/%Y %H:%M'))
             self.click('Enviar')
 
-            self.click('Anexar Termo de Consentimento')
-            self.enter('Imagem', 'tests/imagem.png')
-            self.click('Enviar')
-
             self.logout('779.067.860-41')
 
         # Acessando teleconsulta como paciente
@@ -361,10 +351,6 @@ class IntegrationTestCase(SeleniumTestCase):
             self.click('Noite')
             self.wait()
             self.click((self.proxima_hora() + timedelta(minutes=40)).strftime('%d/%m/%Y %H:%M'))
-            self.click('Enviar')
-
-            self.click('Anexar Termo de Consentimento')
-            self.enter('Imagem', 'tests/imagem.png')
             self.click('Enviar')
 
             self.logout('779.067.860-41')
