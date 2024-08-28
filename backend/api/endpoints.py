@@ -881,13 +881,15 @@ class ConfigurarZoom(endpoints.Endpoint):
     def get(self):
         redirect_url = '{}/app/configurarzoom/'.format(settings.SITE_URL)
         profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
+        
         if profissional_saude.zoom_token:
             info = 'A autorização concedida a Telefiocruz para criar video-chamadas por você será revogada.'
         else:
             info = 'Você será redirecionado para o site da Zoom (https://zoom.us) para autorizar a Telefiocruz criar video-chamadas por você.'
-        profissional_saude.configurar_zoom(authorization_code, redirect_url)
+       
         authorization_code = self.request.GET.get('code')
         if authorization_code:
+            profissional_saude.configurar_zoom(authorization_code, redirect_url)
             return Response('Configuração realizada com sucesso.', redirect='/api/dashboard/')
         return self.formfactory().info(info)
 
