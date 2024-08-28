@@ -873,6 +873,11 @@ class Vidaas(endpoints.Endpoint):
         return self.check_role('ps')
 
 
+class EventoZoom(endpoints.PublicEndpoint):
+    def post(self):
+        return {}
+
+
 class ConfigurarZoom(endpoints.Endpoint):
     class Meta:
         icon = 'video'
