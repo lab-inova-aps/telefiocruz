@@ -873,15 +873,6 @@ class Vidaas(endpoints.Endpoint):
         return self.check_role('ps')
 
 
-class ConfigurarZoom2(endpoints.PublicEndpoint):
-    def get(self):
-        redirect_url = '{}/app/configurarzoom/'.format(settings.SITE_URL)
-        url = 'https://zoom.us/oauth/authorize?response_type=code&client_id={}&redirect_uri={}'.format(
-            os.environ.get('ZOOM_API_KEY'), redirect_url
-        )
-        self.redirect(url)
-
-
 class ConfigurarZoom(endpoints.Endpoint):
     class Meta:
         icon = 'video'
