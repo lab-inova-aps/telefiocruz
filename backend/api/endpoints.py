@@ -662,7 +662,7 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
     
     def check_permission(self):
         return (
-            self.instance.finalizado_em is None
+            1 or self.instance.finalizado_em is None
             and (
                 self.check_role('ps')
                 or self.instance.paciente.cpf == self.request.user.username
@@ -873,21 +873,29 @@ class Vidaas(endpoints.Endpoint):
         return self.check_role('ps')
 
 
+class ConfigurarZoom2(endpoints.PublicEndpoint):
+    def get(self):
+        redirect_url = '{}/app/configurarzoom/'.format(settings.SITE_URL)
+        url = 'https://zoom.us/oauth/authorize?response_type=code&client_id={}&redirect_uri={}'.format(
+            os.environ.get('ZOOM_API_KEY'), redirect_url
+        )
+        self.redirect(url)
+
+
 class ConfigurarZoom(endpoints.Endpoint):
     class Meta:
         icon = 'video'
         verbose_name = 'Configurar Zoom'
 
     def get(self):
-        profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
-        if profissional_saude.zoom_token:
-            info = 'A autorização concedida a Telefiocruz para criar video-chamadas por você será revogada.'
-        else:
-            info = 'Você será redirecionado para o site da Zoom (https://zoom.us) para autorizar a Telefiocruz criar video-chamadas por você.'
         redirect_url = '{}/app/configurarzoom/'.format(settings.SITE_URL)
         authorization_code = self.request.GET.get('code')
         if authorization_code:
             profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
+            if profissional_saude.zoom_token:
+                info = 'A autorização concedida a Telefiocruz para criar video-chamadas por você será revogada.'
+            else:
+                info = 'Você será redirecionado para o site da Zoom (https://zoom.us) para autorizar a Telefiocruz criar video-chamadas por você.'
             profissional_saude.configurar_zoom(authorization_code, redirect_url)
             return Response('Configuração realizada com sucesso.', redirect='/api/dashboard/')
         return self.formfactory().info(info)
