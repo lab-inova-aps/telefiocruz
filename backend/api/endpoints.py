@@ -637,6 +637,26 @@ class SalaEspera(endpoints.PublicEndpoint):
         return self.render(dict(atendimento=atendimento), autoreload=10)
 
 
+class PoliticaPrivacidade(endpoints.PublicEndpoint):
+    def get(self):
+        return self.render({})
+
+
+class GuiaUsuario(endpoints.PublicEndpoint):
+    def get(self):
+        return self.render(dict(l1=[1, 2, 3, 4, 5, 6], l2=[6, 8, 7, 9], l3=[6, 10, 1]))
+
+
+class Suporte(endpoints.PublicEndpoint):
+    def get(self):
+        return self.render({})
+
+
+class TermosUso(endpoints.PublicEndpoint):
+    def get(self):
+        return self.render({})
+
+
 class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
 
     class Meta:
