@@ -717,6 +717,7 @@ class AbrirSala(endpoints.Endpoint):
     def get(self):
         token = self.request.GET.get('token')
         if token:
+            token = ''.join(reversed(token))
             numero, senha = bytes.fromhex(token).decode().split(':')
             print(numero, senha, self.request.user.username if self.request.user.is_authenticated else 'Convidado', 9999)
             return ZoomMeet(numero, senha, self.request.user.username if self.request.user.is_authenticated else 'Convidado')
@@ -724,6 +725,7 @@ class AbrirSala(endpoints.Endpoint):
             profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
             number, password, _ = profissional_saude.criar_sala_virtual(profissional_saude.pessoa_fisica.nome)
             token = binascii.hexlify('{}:{}'.format(number, password).encode()).decode()
+            token = ''.join(reversed(token))
             self.redirect(f'/api/abrirsala/?token={token}')
 
     def check_permission(self):
