@@ -43,13 +43,13 @@
 		  const ZOOM_SDK_KEY = "{{ ZOOM_SDK_KEY }}";
 		  const ZOOM_SDK_SEC = "{{ ZOOM_SDK_SEC }}";
 		  var meetingConfig = {};
-		  meetingConfig.mn = parseInt(data.number);
-		  meetingConfig.name = data.name;
-		  meetingConfig.role = 0;
+		  meetingConfig.mn = '{{ DATA.number }}';
+		  meetingConfig.name = '{{ DATA.username }}';
+		  meetingConfig.role = parseInt('{{ DATA.role }}');
 		  meetingConfig.email = "";
 		  meetingConfig.lang = "pt-PT";
 		  meetingConfig.china = 0;
-		  meetingConfig.pwd = data.password;
+		  meetingConfig.pwd = '{{ DATA.password }}';
           console.log(meetingConfig);
 		  //testTool.setCookie("meeting_number", meetingConfig.mn);
 		  //testTool.setCookie("meeting_pwd", meetingConfig.pwd);
@@ -58,6 +58,7 @@
 		    sdkKey: ZOOM_SDK_KEY,
 		    sdkSecret: ZOOM_SDK_SEC,
 		    role: meetingConfig.role,
+			{% if DATA.role %}zak: '{{ DATA.zak }}',{% endif %}
 		    success: function (res) {
 		      console.log(res);
 		      meetingConfig.signature = res;

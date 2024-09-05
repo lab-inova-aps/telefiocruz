@@ -13,6 +13,7 @@ from django.utils import timezone
 from django.utils.timesince import timesince
 from slth import printer
 from slth.pdf import PdfWriter
+from django.core.cache import cache
 from django.core.files.base import ContentFile
 from slth.db import models, meta, role
 from slth.models import User, RoleFilter
@@ -566,6 +567,7 @@ class ProfissionalSaude(models.Model):
             response = requests.post(url, headers=headers).json()
             print(response)
             self.set_zoom_token(response['refresh_token'])
+            access_token = response['access_token']
             self.save()
             data = {"topic": nome, "settings": {"join_before_host": True}}
             url = 'https://api.zoom.us/v2/users/me/meetings'
@@ -573,10 +575,16 @@ class ProfissionalSaude(models.Model):
             print(url, data)
             response = requests.post(url, json=data, headers=headers).json()
             print(response)
-            number = response.get('id')
+            number = str(response.get('id'))
             password = response.get('encrypted_password')
-            limit = datetime.now() + timedelta(minutes=40)
-            return number, password, limit
+
+            url2 = 'https://api.zoom.us/v2/users/me/zak/'
+            headers2 = {"Authorization": "Bearer {}".format(access_token)}
+            zak = requests.get(url2, headers=headers2).json()['token']
+            
+            cache.set(number, dict(username=self.request.user.username, number=number, password=password, zak=zak))
+            
+            return number
         return None
 
     def formfactory(self):
