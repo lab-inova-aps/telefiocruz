@@ -523,6 +523,13 @@ class ProfissionalSaude(models.Model):
     
     def get_zoom_token(self):
         return signing.loads(self.zoom_token) if self.zoom_token else None
+    
+    @meta('Token do Zoom')
+    def get_partial_zoom_token(self):
+        if self.zoom_token:
+            zoom_token = self.get_zoom_token()
+            return '{}...{}'.format(zoom_token[0:20], zoom_token[-20:])
+        return '-'
 
     def assinar_arquivo_pdf(self, caminho_arquivo, token):
         url = 'https://certificado.vidaas.com.br/valid/api/v1/trusted-services/signatures'
@@ -599,7 +606,7 @@ class ProfissionalSaude(models.Model):
                 .fieldset("Horário de Atendimento", ("get_horarios_atendimento",))
                 .fieldset("Agenda", ("get_agenda",))
             .parent()
-            .fieldset("Configuração de WebConf", ("is_zoom_configurado", 'get_zoom_token'), roles=['a'])
+            .fieldset("Configuração de WebConf", ("is_zoom_configurado", 'get_partial_zoom_token'), roles=['a'])
         )
 
     def __str__(self):
@@ -686,13 +693,6 @@ class ProfissionalSaude(models.Model):
     @meta('Zoom Configurado?')
     def is_zoom_configurado(self):
         return self.zoom_token is not None
-    
-    @meta('Token do Zoom')
-    def get_zoom_token(self):
-        if self.zoom_token:
-            zoom_token = self.get_zoom_token()
-            return '{}...{}'.format(zoom_token[0:20], zoom_token[-20:])
-        return '-'
 
 
 class HorarioAtendimento(models.Model):
