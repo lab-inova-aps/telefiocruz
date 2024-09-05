@@ -58,7 +58,6 @@
 		    sdkKey: ZOOM_SDK_KEY,
 		    sdkSecret: ZOOM_SDK_SEC,
 		    role: meetingConfig.role,
-			{% if DATA.role %}zak: '{{ DATA.zak }}',{% endif %}
 		    success: function (res) {
 		      console.log(res);
 		      meetingConfig.signature = res;
@@ -96,6 +95,7 @@
 		          sdkKey: meetingConfig.sdkKey,
 		          userEmail: meetingConfig.email,
 		          passWord: meetingConfig.pwd,
+				  {% if DATA.role %}zak: '{{ DATA.zak }}',{% endif %}
 		          success: function (res) {
 		            ZoomMtg.getAttendeeslist({});
 		            ZoomMtg.getCurrentUser({
