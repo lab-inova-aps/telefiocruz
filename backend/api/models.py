@@ -18,6 +18,7 @@ from slth.db import models, meta, role
 from slth.models import User, RoleFilter
 from slth.components import Scheduler, FileLink, Image, Map, Text, Badge, TemplateContent
 from slth.printer import qrcode_base64
+from django.core import signing
 
 
 class AdministradorQuerySet(models.QuerySet):
@@ -517,6 +518,12 @@ class ProfissionalSaude(models.Model):
         verbose_name_plural = "Profissionais de Saúde"
         search_fields = 'pessoa_fisica__cpf', 'pessoa_fisica__nome'
 
+    def set_zoom_token(self, zoom_token):
+        self.zoom_token = signing.dumps(zoom_token)
+    
+    def get_zoom_token(self):
+        return signing.loads(self.zoom_token) if self.zoom_token else None
+
     def assinar_arquivo_pdf(self, caminho_arquivo, token):
         url = 'https://certificado.vidaas.com.br/valid/api/v1/trusted-services/signatures'
         filename = caminho_arquivo.split('/')[-1]
@@ -541,17 +548,17 @@ class ProfissionalSaude(models.Model):
         auth = base64.b64encode('{}:{}'.format(os.environ.get('ZOOM_API_KEY'), os.environ.get('ZOOM_API_SEC')).encode()).decode()
         headers = {"Content-Type": "application/x-www-form-urlencoded", "Authorization": "Basic {}".format(auth)}
         response = requests.post(url, headers=headers).json()
-        self.zoom_token = response['refresh_token']
+        self.set_zoom_token(response['refresh_token'])
         self.save()
 
     def criar_sala_virtual(self, nome):
         if self.zoom_token:
-            url = 'https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token={}'.format(self.zoom_token)
+            url = 'https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token={}'.format(self.get_zoom_token())
             auth = base64.b64encode('{}:{}'.format(os.environ.get('ZOOM_API_KEY'), os.environ.get('ZOOM_API_SEC')).encode()).decode()
             headers = {"Content-Type": "application/x-www-form-urlencoded", "Authorization": "Basic {}".format(auth)}
             response = requests.post(url, headers=headers).json()
             print(response)
-            self.zoom_token = response['refresh_token']
+            self.set_zoom_token(response['refresh_token'])
             self.save()
             data = {"topic": nome, "settings": {"join_before_host": True}}
             url = 'https://api.zoom.us/v2/users/me/meetings'
@@ -671,7 +678,9 @@ class ProfissionalSaude(models.Model):
     
     def save(self, *args, **kwargs):
         if self.zoom_token is None:
-           self.zoom_token = os.environ.get('ZOOM_TOKEN') 
+           zoom_token = os.environ.get('ZOOM_TOKEN')
+           if zoom_token:
+            self.set_zoom_token(os.environ.get('ZOOM_TOKEN'))
         super().save(*args, **kwargs)
 
     @meta('Zoom Configurado?')
@@ -681,7 +690,8 @@ class ProfissionalSaude(models.Model):
     @meta('Token do Zoom')
     def get_zoom_token(self):
         if self.zoom_token:
-            return '{}...{}'.format(self.zoom_token[0:20], self.zoom_token[-20:])
+            zoom_token = self.get_zoom_token()
+            return '{}...{}'.format(zoom_token[0:20], zoom_token[-20:])
         return '-'
 
 
