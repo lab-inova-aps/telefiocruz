@@ -717,7 +717,7 @@ class AbrirSala(endpoints.Endpoint):
     def get(self):
         token = self.request.GET.get('token')
         if token:
-            return ZoomMeet(token)
+            return ZoomMeet(token, 1 if self.request.user.is_authenticated else 0)
         else:
             profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
             number = profissional_saude.criar_sala_virtual(profissional_saude.pessoa_fisica.nome)
