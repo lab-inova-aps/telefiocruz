@@ -582,7 +582,7 @@ class ProfissionalSaude(models.Model):
             headers2 = {"Authorization": "Bearer {}".format(access_token)}
             zak = requests.get(url2, headers=headers2).json()['token']
             
-            cache.set(number, dict(username=self.request.user.username, number=number, password=password, zak=zak))
+            cache.set(number, dict(username=self.pessoa_fisica.cpf, number=number, password=password, zak=zak))
             
             return number
         return None
