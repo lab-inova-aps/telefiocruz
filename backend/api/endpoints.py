@@ -4,7 +4,7 @@ from uuid import uuid1
 from django.core.files.base import ContentFile
 from slth import endpoints
 from django.conf import settings
-from slth.components import Scheduler, ZoomMeet, TemplateContent, Response
+from slth.components import Scheduler, ZoomMeet, Warning, Response
 from .models import *
 from slth import forms
 from .utils import buscar_endereco
@@ -717,7 +717,9 @@ class AbrirSala(endpoints.Endpoint):
     def get(self):
         token = self.request.GET.get('token')
         if token:
-            return ZoomMeet(token, self.request.user.username if self.request.user.is_authenticated else 'Convidado')
+            if cache.get(token):
+                return ZoomMeet(token, self.request.user.username if self.request.user.is_authenticated else 'Convidado')
+            self.redirect('/app/dashboard/')
         else:
             profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
             number = profissional_saude.criar_sala_virtual(profissional_saude.pessoa_fisica.nome)
@@ -1062,3 +1064,4 @@ class AssinarViaQrCode(endpoints.InstanceEndpoint[Atendimento]):
 
     def check_permission(self):
         return self.check_role('ps')
+

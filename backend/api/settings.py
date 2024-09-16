@@ -43,6 +43,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    #'slth.middleware.timezone.Middleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -197,3 +198,7 @@ if os.path.exists('/Users/breno'):
         "OPTIONS": {"MAX_ENTRIES": 1000},
     }
  }
+
+
+
+
