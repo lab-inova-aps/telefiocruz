@@ -25,8 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-p&2#cx&qubz4-$cl)dv#=_k7#ni^_%$1o1vm-x(3qq+r8oyg-@'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
+DEBUG = os.path.exists('/Users/Breno')
 
 # Application definition
 
@@ -198,7 +197,3 @@ if os.path.exists('/Users/breno'):
         "OPTIONS": {"MAX_ENTRIES": 1000},
     }
  }
-
-
-
-
