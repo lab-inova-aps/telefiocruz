@@ -158,8 +158,8 @@ class Migration(migrations.Migration):
                 ('nome', slth.db.models.CharField(max_length=255, verbose_name='Nome')),
             ],
             options={
-                'verbose_name': 'Núcleo de Telesaúde',
-                'verbose_name_plural': 'Núcleos de Telesaúde',
+                'verbose_name': 'Núcleo de Telessaúde',
+                'verbose_name_plural': 'Núcleos de Telessaúde',
                 'icon': 'building-user',
             },
             bases=(models.Model, slth.ModelMixin),

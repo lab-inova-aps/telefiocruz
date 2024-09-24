@@ -19,26 +19,26 @@ application:
   index: dashboard
   dashboard:
     toolbar:
-      - pessoasfisicas
-      - profissionaissaude
-      - atendimentos
+      - pessoafisica.pessoasfisicas
+      - profissionalsaude.profissionaissaude
+      - atendimento.atendimentos
     actions:
     top:
     center:
-      - meusvinculos
-      - proximosatendimentosprofissionalsaude
-      - proximosatendimentospaciente
-      - minhaagenda
+      - profissionalsaude.vinculos
+      - profissionalsaude.proximosatendimentos
+      - pessoafisica.proximosatendimentos
+      - profissionalsaude.minhaagenda
     boxes:
       - abrirsala
       - configurarzoom
-      - pessoasfisicas
-      - nucleos
-      - unidades
-      - profissionaissaude
-      - definirhorarioprofissionaissaude
-      - atendimentos
-      - agendaatendimentos
+      - pessoafisica.pessoasfisicas
+      - nucleo.nucleos
+      - unidade.unidades
+      - profissionalsaude.profissionaissaude
+      - profissionalsaude.definirhorarios
+      - atendimento.atendimentos
+      - atendimento.agenda
       - estatistica
     adder:
     search:
@@ -49,26 +49,24 @@ application:
     tools:
     settings:
   menu:
-    user-gear:Administradores: administradores
+    user-gear:Administradores: administrador.administradores
     list:Cadastros Gerais:
-      CIDs: cids
-      CIAPs: ciaps
-      Conselhos de Classe: conselhosclasse
-      Níveis de Formacão: niveisformacao
-      Sexos: sexos
-      Tipos de Atendimento: tiposatendimento
-      Estados: unidadesfederativas
-      Municípios: municipios
-      Áreas: areas
-      Especialidades: especialidades
-      Tipos de Exame: tiposexame
-      Medicamentos: medicamentos
-    building-user:Núcleos de Telesaúde: nucleos
-    building:Unidades de Saúde: unidades
-    stethoscope:Profissionais de Saúde: profissionaissaude
-    users:Pessoas Físicas: pessoafisicas
-    laptop-file:Atendimentos: atendimentos
-    #file-signature:Certificados Digitais: certificadosdigitais
+      CIDs: cid.cids
+      CIAPs: ciap.ciaps
+      Conselhos de Classe: conselhoclasse.conselhosclasse
+      Sexos: sexo.sexos
+      Tipos de Atendimento: tipoatendimento.tiposatendimento
+      Estados: estado.estados
+      Municípios: municipio.municipios
+      Áreas: area.areas
+      Especialidades: especialidade.especialidades
+      Tipos de Exame: tipoexame.tiposexame
+      Medicamentos: medicamento.medicamentos
+    building-user:Núcleos de Telessaúde: nucleo.nucleos
+    building:Unidades de Saúde: unidade.unidades
+    stethoscope:Profissionais de Saúde: profissionalsaude.profissionaissaude
+    users:Pessoas Físicas: pessoafisica.pessoasfisicas
+    laptop-file:Atendimentos: atendimento.atendimentos
   theme:
     colors:
       primary: "#265890"

@@ -46,14 +46,14 @@ class IntegrationTestCase(SeleniumTestCase):
             self.click('Enviar')
 
             self.click('Estados')
-            self.click('Cadastrar')
+            self.click('Cadastrar Estado')
             self.enter('Código IBGE', '01')
             self.enter('Sigla', 'RN')
             self.enter('Nome', 'Rio Grande do Norte')
             self.click('Enviar')
 
             self.click('Municípios')
-            self.click('Cadastrar')
+            self.click('Cadastrar Município')
             self.choose('Estado', 'Rio Grande do Norte')
             self.enter('Código IBGE', '010001')
             self.enter('Nome', 'Natal')
@@ -66,28 +66,28 @@ class IntegrationTestCase(SeleniumTestCase):
             self.click('Enviar')
 
             self.click('Áreas')
-            self.click('Cadastrar')
+            self.click('Cadastrar Área')
             self.enter('Nome', 'Clínico Geral')
             self.click('Enviar')
-            self.click('Cadastrar')
+            self.click('Cadastrar Área')
             self.enter('Nome', 'Cardiologia')
             self.click('Enviar')
-            self.click('Cadastrar')
+            self.click('Cadastrar Área')
             self.enter('Nome', 'Psiquiatria')
             self.click('Enviar')
 
             self.click('Especialidades')
-            self.click('Cadastrar especialidade')
+            self.click('Cadastrar Especialidade')
             self.enter('Código', '01')
             self.enter('Nome', 'Clínico Geral')
             self.choose('Área', 'Clínico Geral')
             self.click('Enviar')
-            self.click('Cadastrar especialidade')
+            self.click('Cadastrar Especialidade')
             self.enter('Código', '02')
             self.enter('Nome', 'Cardiologia')
             self.choose('Área', 'Cardiologia')
             self.click('Enviar')
-            self.click('Cadastrar especialidade')
+            self.click('Cadastrar Especialidade')
             self.enter('Código', '03')
             self.enter('Nome', 'Psiquiatria')
             self.choose('Área', 'Psiquiatria')
@@ -99,67 +99,67 @@ class IntegrationTestCase(SeleniumTestCase):
             self.login('000.000.000-00', '123')
 
             self.click('Pessoas Físicas')
-            self.click('Cadastrar Pessoa Fisica')
+            self.click('Cadastrar Pessoa Física')
             self.enter('CPF', '466.778.160-28')
             self.enter('Nome', 'João Maria')
             self.enter('Data de Nascimento', '01/01/1985')
             self.click('Enviar')
 
-            self.click('Cadastrar Pessoa Fisica')
+            self.click('Cadastrar Pessoa Física')
             self.enter('CPF', '026.219.140-71')
             self.enter('Nome', 'Roberto Carlos')
             self.enter('Data de Nascimento', '01/01/1985')
             self.click('Enviar')
 
-            self.click('Cadastrar Pessoa Fisica')
+            self.click('Cadastrar Pessoa Física')
             self.enter('CPF', '779.067.860-41')
             self.enter('Nome', 'Fafá de Belém')
             self.enter('Data de Nascimento', '01/01/1985')
             self.click('Enviar')
 
-            self.click('Cadastrar Pessoa Fisica')
+            self.click('Cadastrar Pessoa Física')
             self.enter('CPF', '082.396.140-00')
             self.enter('Nome', 'Marisa Monte')
             self.enter('Data de Nascimento', '01/01/1985')
             self.click('Enviar')
 
-            self.click('Cadastrar Pessoa Fisica')
+            self.click('Cadastrar Pessoa Física')
             self.enter('CPF', '385.895.870-02')
             self.enter('Nome', 'Fábio Júnir')
             self.enter('Data de Nascimento', '01/01/1985')
             self.click('Enviar')
 
-            self.click('Cadastrar Pessoa Fisica')
+            self.click('Cadastrar Pessoa Física')
             self.enter('CPF', '716.635.620-08')
             self.enter('Nome', 'Ney Matogroso')
             self.enter('Data de Nascimento', '01/01/1985')
             self.click('Enviar')
 
-            self.click('Cadastrar Pessoa Fisica')
+            self.click('Cadastrar Pessoa Física')
             self.enter('CPF', '577.106.830-61')
             self.enter('Nome', 'Roberto Justus')
             self.enter('Data de Nascimento', '01/01/1985')
             self.click('Enviar')
 
-            self.click('Cadastrar Pessoa Fisica')
+            self.click('Cadastrar Pessoa Física')
             self.enter('CPF', '325.088.940-79')
             self.enter('Nome', 'Tony Ramos')
             self.enter('Data de Nascimento', '01/01/1985')
             self.click('Enviar')
 
-            self.click('Cadastrar Pessoa Fisica')
+            self.click('Cadastrar Pessoa Física')
             self.enter('CPF', '263.578.940-10')
             self.enter('Nome', 'Breno Silva')
             self.enter('Data de Nascimento', '01/01/1985')
             self.click('Enviar')
 
-            self.click('Cadastrar Pessoa Fisica')
+            self.click('Cadastrar Pessoa Física')
             self.enter('CPF', '580.800.870-08')
             self.enter('Nome', 'Bruno Silva')
             self.enter('Data de Nascimento', '01/01/1985')
             self.click('Enviar')
 
-            self.click('Cadastrar Pessoa Fisica')
+            self.click('Cadastrar Pessoa Física')
             self.enter('CPF', '537.690.540-32')
             self.enter('Nome', 'Juliana Pessoa')
             self.enter('Data de Nascimento', '01/01/1985')
@@ -167,11 +167,11 @@ class IntegrationTestCase(SeleniumTestCase):
         
             self.logout('000.000.000-00')
         
-        # Acessando como super-usuário para cadastrar núcleo de telesaúde
+        # Acessando como super-usuário para cadastrar núcleo de Telessaúde
         if self.step('3'):
             self.login('000.000.000-00', '123')
-            self.click('Núcleos de Telesaúde')
-            self.click('Cadastrar Núcleo de Telesaúde')
+            self.click('Núcleos de Telessaúde')
+            self.click('Cadastrar Núcleo de Telessaúde')
             self.enter('Nome', 'Núcleo Natal/RN')
             self.choose('Gestores', 'João Maria')
             self.choose('Operadores', 'Roberto Carlos')
@@ -184,7 +184,7 @@ class IntegrationTestCase(SeleniumTestCase):
             self.login('000.000.000-00', '123')
 
             self.click('Unidades de Saúde')
-            self.click('Cadastrar Unidade')
+            self.click('Cadastrar Unidade de Saúde')
             self.enter('Nome', 'Unidade Capim Macio')
             self.choose('Municipio', 'Natal')
             self.click('Enviar')
@@ -199,7 +199,7 @@ class IntegrationTestCase(SeleniumTestCase):
             self.click('Enviar')
 
             self.click('Unidades de Saúde')
-            self.click('Cadastrar Unidade')
+            self.click('Cadastrar Unidade de Saúde')
             self.enter('Nome', 'Unidade Mirassol')
             self.choose('Municipio', 'Natal')
             self.click('Enviar')
@@ -218,7 +218,7 @@ class IntegrationTestCase(SeleniumTestCase):
         # Acessando como gestor de núcleo para vincular unidades e adicionar profissionais ao núcleo
         if self.step('5'):
             self.login('466.778.160-28', '123')
-            self.click('Núcleos de Telesaúde')
+            self.click('Núcleos de Telessaúde')
             self.click('Visualizar')
             self.click('Editar')
             self.choose('Unidades Atendidas', 'Unidade Capim Macio')
@@ -258,7 +258,7 @@ class IntegrationTestCase(SeleniumTestCase):
                 self.click((self.proxima_hora() + timedelta(minutes=i)).strftime('%d/%m/%Y %H:%M'))
             self.click('Enviar')
             self.click('Agenda de Atendimentos')
-            self.click('Cadastrar')
+            self.click('Cadastrar Atendimento')
             self.click('Unidade Capim Macio')
             self.click('Teleconsulta')
             self.click('Clínico Geral')
@@ -280,7 +280,7 @@ class IntegrationTestCase(SeleniumTestCase):
         if self.step('7'):
             self.login('577.106.830-61', '123')
             self.look_at('Próximos Atendimentos')
-            self.click('Acessar')
+            self.click('Visualizar')
 
             self.click('Sala Virtual')
 
@@ -294,7 +294,7 @@ class IntegrationTestCase(SeleniumTestCase):
         if self.step('8'):
             self.login('779.067.860-41', '123')
             self.look_at('Próximos Atendimentos')
-            self.click('Acessar')
+            self.click('Visualizar')
 
             self.click('Sala Virtual')
             self.enter('S - subjetivo', 'Subjetivo....')
@@ -335,7 +335,7 @@ class IntegrationTestCase(SeleniumTestCase):
         if self.step('10'):
             self.login('779.067.860-41', '123')
             self.click('Agenda de Atendimentos')
-            self.click('Cadastrar')
+            self.click('Cadastrar Atendimento')
             self.click('Unidade Capim Macio')
             self.click('Tele-interconsulta')
             self.click('Cardiologia')
@@ -359,7 +359,7 @@ class IntegrationTestCase(SeleniumTestCase):
         if self.step('11'):
             self.login('577.106.830-61', '123')
             self.look_at('Próximos Atendimentos')
-            self.click('Acessar')
+            self.click('Visualizar')
 
             self.click('Sala Virtual')
 
@@ -373,7 +373,7 @@ class IntegrationTestCase(SeleniumTestCase):
         if self.step('12'):
             self.login('385.895.870-02', '123')
             self.look_at('Próximos Atendimentos')
-            self.click('Acessar')
+            self.click('Visualizar')
             self.wait()
 
             self.click('Sala Virtual')
@@ -391,7 +391,7 @@ class IntegrationTestCase(SeleniumTestCase):
         if self.step('13'):
             self.login('779.067.860-41', '123')
             self.look_at('Próximos Atendimentos')
-            self.click('Acessar')
+            self.click('Visualizar')
 
             self.click('Sala Virtual')
             self.enter('S - subjetivo', 'Subjetivo....')

@@ -74,7 +74,7 @@ class CIAP(models.Model):
 
 class AreaQuerySet(models.QuerySet):
     def all(self):
-        return self.fields('nome', 'get_qtd_profissonais_saude').actions('profissionaissaudearea')
+        return self.fields('nome', 'get_qtd_profissonais_saude').actions('area.profissionaissaude')
 
 
 class Area(models.Model):
@@ -88,7 +88,7 @@ class Area(models.Model):
         verbose_name_plural = "Áreas"
 
     def get_profissonais_saude(self):
-        return ProfissionalSaude.objects.filter(especialidade__area=self).fields('pessoa_fisica', 'nucleo', 'get_tags')
+        return ProfissionalSaude.objects.filter(especialidade__area=self).fields('pessoa_fisica', 'nucleo')
     
     @meta('Qtd. de Profissionais')
     def get_qtd_profissonais_saude(self):
@@ -182,7 +182,7 @@ class EspecialidadeQuerySet(models.QuerySet):
             self.search('nome')
             .fields('cbo', 'nome', 'area', 'get_qtd_profissonais_saude')
             .filters('categoria', 'area')
-            .actions('profissionaissaudeespecialidade')
+            .actions('especialidade.profissionaissaude')
         )
     
 
@@ -195,8 +195,12 @@ class Especialidade(models.Model):
 
     objects = EspecialidadeQuerySet()
 
+    class Meta:
+        verbose_name = 'Especialidade'
+        verbose_name_plural = 'Especialidades'
+
     def get_profissonais_saude(self):
-        return self.profissionalsaude_set.fields('pessoa_fisica', 'nucleo', 'get_tags')
+        return self.profissionalsaude_set.fields('pessoa_fisica', 'nucleo')
     
     @meta('Qtd. de Profissionais')
     def get_qtd_profissonais_saude(self):
@@ -301,7 +305,7 @@ class PessoaFisica(models.Model):
         return None
     
     def get_atendimentos(self):
-        return self.atendimentos_paciente.all().filters('especialidade').actions('visualizaratendimento')
+        return self.atendimentos_paciente.all().filters('especialidade').actions('atendimento.view')
 
 
 class UnidadeQuerySet(models.QuerySet):
@@ -357,7 +361,7 @@ class Unidade(models.Model):
         return (
             super()
             .formfactory()
-            .fieldset("Dados Gerais", (("nome", "cnes"), 'gestores:cadastrarpessoafisica', 'operadores:cadastrarpessoafisica'))
+            .fieldset("Dados Gerais", (("nome", "cnes"), 'gestores:pessoafisica.add', 'operadores:pessoafisica.add'))
             .fieldset("Endereço", (("cep", "bairro"), "logradouro", ("numero", "municipio")))
             .fieldset("Geolocalização", (("latitude", "longitude"),))
         )
@@ -375,7 +379,7 @@ class Unidade(models.Model):
     
     @meta('Profissionais de Saúde')
     def get_profissionais_saude(self):
-        return self.profissionalsaude_set.all().actions('cadastrarprofissionalsaudeunidade', 'editarprofissionalsaude', 'visualizarprofissionalsaude')
+        return self.profissionalsaude_set.all().actions('unidade.addprofissionalsaude', 'profissionalsaude.edit', 'profissionalsaude.view')
     
     @meta('Quantidade de Profissionais')
     def get_qtd_profissionais_saude(self):
@@ -385,7 +389,7 @@ class Unidade(models.Model):
 
 class NucleoQuerySet(models.QuerySet):
     def all(self):
-        return self.fields('nome', 'gestores', 'operadores', 'get_qtd_profissonais_saude').actions('agendanucleo').cards()
+        return self.fields('nome', 'gestores', 'operadores', 'get_qtd_profissonais_saude').actions('nucleo.agenda').cards()
 
 
 @role('g', username='gestores__cpf', nucleo='pk')
@@ -400,14 +404,14 @@ class Nucleo(models.Model):
 
     class Meta:
         icon = "building-user"
-        verbose_name = "Núcleo de Telesaúde"
-        verbose_name_plural = "Núcleos de Telesaúde"
+        verbose_name = "Núcleo de Telessaúde"
+        verbose_name_plural = "Núcleos de Telessaúde"
 
     def formfactory(self):
         return (
             super()
             .formfactory()
-            .fieldset("Dados Gerais", ("nome", 'gestores:cadastrarpessoafisica', 'operadores:cadastrarpessoafisica'))
+            .fieldset("Dados Gerais", ("nome", 'gestores:pessoafisica.add', 'operadores:pessoafisica.add'))
             .fieldset("Atuação", ("unidades",),)
         )
 
@@ -424,7 +428,7 @@ class Nucleo(models.Model):
     
     @meta('Profissionais de Saúde')
     def get_profissionais_saude(self):
-        return self.profissionalsaude_set.all().filters('especialidade').actions('cadastrarprofissionalsaudenucleo')
+        return self.profissionalsaude_set.all().filters('especialidade').actions('nucleo.addprofissionalsaude')
     
     @meta('Qtd. de Profissionais')
     def get_qtd_profissonais_saude(self):
@@ -461,7 +465,7 @@ class Nucleo(models.Model):
     
     @meta('Unidades de Atuação')
     def get_unidades(self):
-        return self.unidades.all().actions('visualizarunidade', 'editarunidade')
+        return self.unidades.all().actions('unidade.view', 'unidade.edit')
     
     def __str__(self):
         return self.nome  
@@ -472,7 +476,7 @@ class ProfissionalSaudeQueryset(models.QuerySet):
             self.search("pessoa_fisica__nome", "pessoa_fisica__cpf")
             .filters("nucleo", "unidade", "especialidade",)
             .fields("get_estabelecimento", "especialidade")
-            .actions('definirhorarioprofissionalsaude', 'alteraragendaprofissionalsaude')
+            .actions('profissionalsaude.definirhorario', 'profissionalsaude.alteraragenda')
         ).cards()
 
 @role('ps', username='pessoa_fisica__cpf')
@@ -591,7 +595,7 @@ class ProfissionalSaude(models.Model):
         return (
             super()
             .formfactory()
-            .fieldset("Dados Gerais", (("pessoa_fisica:cadastrarpessoafisica",),))
+            .fieldset("Dados Gerais", (("pessoa_fisica:pessoafisica.add",),))
             .fieldset("Dados Profissionais", ("especialidade", ("conselho_profissional", "registro_profissional"), ("conselho_especialista", "registro_especialista",),),)
             .fieldset("Informações Adicionais", (("programa_provab", "programa_mais_medico"), ("residente", "perceptor"),),)
         ) if self.pk is None else (
@@ -606,7 +610,7 @@ class ProfissionalSaude(models.Model):
         return (
             super()
             .serializer()
-            .actions("editarprofissionalsaude", "definirhorarioprofissionalsaude", "alteraragendaprofissionalsaude")
+            .actions("profissionalsaude.edit", "profissionalsaude.definirhorario", "profissionalsaude.alteraragenda")
             .fieldset("Dados Gerais", (("pessoa_fisica"),))
             .fieldset("Dados Profissionais", (("especialidade", "get_estabelecimento"), ("conselho_profissional", "registro_profissional"), ("conselho_especialista", "registro_especialista"),),)
             .group()
@@ -820,7 +824,7 @@ class AtendimentoQuerySet(models.QuerySet):
         scheduler = Scheduler(
             chucks=3,
             watch=['profissional', 'especialista'],
-            url='/api/consultarhorariosdisponiveis/',
+            url='/api/atendimento/horariosdisponiveis/',
             single_selection=True,
             selectable=None if is_teleconsulta and is_proprio_profissional else selectable,
             readonly=not selectable
@@ -932,7 +936,7 @@ class Atendimento(models.Model):
             .fieldset(
                 "Detalhamento",
                 (
-                    "paciente:cadastrarpessoafisica",
+                    "paciente:pessoafisica.add",
                     "assunto",
                     "duvida",
                     ("cid", "ciap"),
@@ -948,7 +952,7 @@ class Atendimento(models.Model):
             super()
             .serializer()
             .fields('get_tags')
-            .actions('enviarnotificacaoatendimento', 'anexararquivo', 'salavirtual', 'registrarecanminhamentoscondutas', 'emitiratestado', 'solicitarexames', 'prescrevermedicamento', 'finalizaratendimento')
+            .actions('atendimento.enviarnotificacao', 'atendimento.anexararquivo', 'salavirtual', 'atendimento.registrarecanminhamentoscondutas', 'atendimento.emitiratestado', 'atendimento.solicitarexames', 'atendimento.prescrevermedicamento', 'atendimento.finalizaratendimento')
             .fieldset(
                 "Dados Gerais",
                 (
@@ -973,7 +977,7 @@ class Atendimento(models.Model):
                             ("sexo", "nome_social"),
                             ("data_nascimento", "get_idade"),
                             ("telefone", "email")
-                        ), attr="paciente", actions=('atualizarpaciente', 'historicopaciente')
+                        ), attr="paciente", actions=('pessoafisica.atualizarpaciente', 'pessoafisica.historicopaciente')
                     )
                     .fieldset(
                         "Profissional Responsável", (
@@ -1063,7 +1067,7 @@ class Atendimento(models.Model):
 
     @meta('URL Externa')
     def get_url_externa(self):
-        return FileLink('{}/app/teleatendimento/?token={}'.format(settings.SITE_URL, self.token))
+        return FileLink('{}/app/atendimento/publico/?token={}'.format(settings.SITE_URL, self.token))
     
     def get_qrcode_link_webconf(self):
         return qrcode_base64(self.get_url_externa()['url'])
