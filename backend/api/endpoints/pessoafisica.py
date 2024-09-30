@@ -34,7 +34,7 @@ class View(endpoints.ViewEndpoint[PessoaFisica]):
         return self.check_role('a')
 
 
-class ProximosAtendimentos(endpoints.ListEndpoint[Atendimento]):
+class ProximosAtendimentos(endpoints.QuerySetEndpoint[Atendimento]):
     class Meta:
         verbose_name= 'Próximos Atendimentos'
 

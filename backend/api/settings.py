@@ -189,11 +189,19 @@ if os.environ.get('POSTGRES_HOST') and 'test' not in sys.argv:
     }
 
 if os.path.exists('/Users/breno'):
- CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
-        "LOCATION": "/tmp/django_cache",
-        "TIMEOUT": 60,
-        "OPTIONS": {"MAX_ENTRIES": 1000},
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+            "LOCATION": "/tmp/django_cache",
+            "TIMEOUT": 60,
+            "OPTIONS": {"MAX_ENTRIES": 1000},
+        }
     }
- }
+#else:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = os.environ.get('EMAIL_HOST')
+    EMAIL_PORT = os.environ.get('EMAIL_PORT')
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+    EMAIL_USE_TLS = bool(os.environ.get('EMAIL_USE_TLS'))
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL')

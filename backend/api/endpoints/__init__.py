@@ -165,13 +165,13 @@ class Estatistica(endpoints.PublicEndpoint):
 
 from .. import tasks
 class FazerAlgumaCoisa(endpoints.Endpoint):
-    total = forms.IntegerField(label='Total')
+    n = forms.IntegerField(label='Total')
 
     class Meta:
         modal = False
     
     def post(self):
-        return tasks.FazerAlgumaCoisa()
+        return tasks.FazerAlgumaCoisa(self.cleaned_data['n'])
 
 class Vidaas(endpoints.Endpoint):
     class Meta:

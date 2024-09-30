@@ -350,7 +350,7 @@ class Unidade(models.Model):
     def serializer(self):
         return (
             super()
-            .serializer().actions('edit')
+            .serializer().actions('unidade.edit')
             .fieldset("Dados Gerais", (("nome", "cnes"), 'gestores', 'operadores'))
             .fieldset("Endereço", (("cep", "bairro"), "logradouro", ("numero", "municipio")))
             .fieldset("Geolocalização", (("latitude", "longitude"), 'get_mapa'))
@@ -418,7 +418,7 @@ class Nucleo(models.Model):
     def serializer(self):
         return (
             super()
-            .serializer().actions('edit')
+            .serializer().actions('nucleo.edit')
             .fieldset("Dados Gerais", ("nome", 'gestores', 'operadores'))
             .group('Detalhamento')
                 .queryset('Unidades Atendidas', 'get_unidades')
@@ -1028,7 +1028,7 @@ class Atendimento(models.Model):
     
     @meta('Anexos')
     def get_anexos(self):
-        return self.anexoatendimento_set.fields('get_nome_arquivo', 'autor', 'assinaturas', 'get_arquivo').actions('delete')
+        return self.anexoatendimento_set.fields('get_nome_arquivo', 'autor', 'assinaturas', 'get_arquivo')
     
     @meta('Anexos')
     def get_anexos_webconf(self):

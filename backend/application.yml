@@ -43,9 +43,14 @@ application:
     adder:
     search:
     usermenu:
-      #- icons
-      - users
-      - logout
+      - dev.icons
+      - user.users
+      - log.logs
+      - email.emails
+      - pushsubscription.pushsubscriptions
+      - job.jobs
+      - deletion.deletions
+      - auth.logout
     tools:
     settings:
   menu:

@@ -111,7 +111,7 @@ class DefinirHorarios(endpoints.Endpoint):
         return super().post()
 
 
-class ProximosAtendimentos(endpoints.ListEndpoint[Atendimento]):
+class ProximosAtendimentos(endpoints.QuerySetEndpoint[Atendimento]):
     class Meta:
         verbose_name= 'Próximos Atendimentos'
 

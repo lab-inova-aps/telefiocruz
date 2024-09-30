@@ -51,7 +51,7 @@ class Add(endpoints.AddEndpoint[Atendimento]):
             if self.check_role('o'):
                 return queryset
             elif self.check_role('ps'):
-                if tipo.id == TipoAtendimento.TELECONSULTA:
+                if tipo.nome == 'Teleconsulta':
                     return queryset.filter(profissionalsaude__pessoa_fisica__cpf=self.request.user.username)
                 else:
                     return queryset
@@ -60,7 +60,7 @@ class Add(endpoints.AddEndpoint[Atendimento]):
     def on_tipo_change(self, controller, values):
         tipo = values.get('tipo')
         controller.reload('especialidade', 'profissional', 'especialista', 'agendado_para')
-        if tipo and tipo.id == TipoAtendimento.TELE_INTERCONSULTA:
+        if tipo and tipo.nome != 'Teleconsulta':
             controller.show('especialista')
         else:
             controller.hide('especialista')
