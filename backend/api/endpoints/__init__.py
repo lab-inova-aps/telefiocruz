@@ -65,7 +65,7 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
 
     def get(self):
         # se a sala virtual ainda não foi criada
-        if self.instance.numero_webconf is None and not RUNNING_TESTING:
+        if not RUNNING_TESTING:
             # criar sala virtual caso esteja sendo acessado pelo profissional responsável
             if self.instance.profissional.pessoa_fisica.cpf == self.request.user.username:
                 self.instance.check_webconf()
