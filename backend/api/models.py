@@ -916,7 +916,7 @@ class Atendimento(models.Model):
         verbose_name_plural = "Atendimentos"
 
     def check_webconf(self):
-        if not cache.get(self.numero_webconf):
+        if 1 or not cache.get(self.numero_webconf):
             self.numero_webconf = self.profissional.criar_sala_virtual('Atendimento #{}'.format(self.id))
             self.senha_webconf = None
             self.limite_webconf = None
