@@ -93,7 +93,7 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
 class VideoChamada(endpoints.InstanceEndpoint[Atendimento]):
     def get(self):
         cpf = self.request.user.username if self.request.user.is_authenticated else self.instance.paciente.cpf
-        return ZoomMeet(self.instance.numero_webconf, self.instance.senha_webconf, cpf)
+        return ZoomMeet(self.instance.numero_webconf, cpf)
     
     def check_permission(self):
         return (

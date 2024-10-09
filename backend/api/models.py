@@ -916,11 +916,10 @@ class Atendimento(models.Model):
         verbose_name_plural = "Atendimentos"
 
     def check_webconf(self):
-        if self.limite_webconf is None or self.limite_webconf < datetime.now():
-            number, password, limit = self.profissional.criar_sala_virtual('Atendimento #{}'.format(self.id))
-            self.numero_webconf = number
-            self.senha_webconf = password
-            self.limite_webconf = limit
+        if not cache.get(self.numero_webconf):
+            self.numero_webconf = self.profissional.criar_sala_virtual('Atendimento #{}'.format(self.id))
+            self.senha_webconf = None
+            self.limite_webconf = None
             self.save()
 
     def formfactory(self):
