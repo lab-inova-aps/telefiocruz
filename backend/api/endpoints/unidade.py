@@ -5,7 +5,7 @@ from ..utils import buscar_endereco
 
 class Unidades(endpoints.ListEndpoint[Unidade]):
     def get(self):
-        return super().get().lookup('gu', pk='unidade')
+        return super().get().lookup('a').lookup('gu', pk='unidade')
     
     def check_permission(self):
         return self.check_role('a', 'gu')
