@@ -70,8 +70,8 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
             if self.instance.profissional.pessoa_fisica.cpf == self.request.user.username:
                 self.instance.check_webconf()
             # redirecionar para a sala de espera
-            else:
-                self.redirect('/api/salaespera/?token={}'.format(self.instance.token))
+            # else:
+            #     self.redirect('/api/salaespera/?token={}'.format(self.instance.token))
         return (
             self.serializer().actions('atendimento.anexararquivo', 'atendimento.emitiratestado', 'atendimento.solicitarexames', 'atendimento.prescrevermedicamento')
             .endpoint('VideoChamada', 'videochamada', wrap=False)
@@ -126,7 +126,7 @@ class AbrirSala(endpoints.Endpoint):
 
     def check_permission(self):
         profissional_saude = ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username).first()
-        return self.request.GET.get('token') or (profissional_saude and profissional_saude.zoom_token)
+        return 0 and (self.request.GET.get('token') or (profissional_saude and profissional_saude.zoom_token))
 
 
 
@@ -251,7 +251,7 @@ class ConfigurarZoom(endpoints.Endpoint):
             self.redirect(url)
 
     def check_permission(self):
-        return self.check_role('ps') or ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username, zoom_token__isnull=True).exists()
+        return self.check_role('ps', superuser=False) or ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username, zoom_token__isnull=True).exists()
 
 
 

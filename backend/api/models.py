@@ -697,9 +697,7 @@ class ProfissionalSaude(models.Model):
     
     def save(self, *args, **kwargs):
         if self.zoom_token is None:
-           zoom_token = os.environ.get('ZOOM_TOKEN')
-           if zoom_token:
-            self.set_zoom_token(os.environ.get('ZOOM_TOKEN'))
+            self.zoom_token = os.environ.get('ZOOM_API_TOKEN')
         super().save(*args, **kwargs)
 
     @meta('Zoom Configurado?')

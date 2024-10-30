@@ -19,9 +19,6 @@ application:
   index: dashboard
   dashboard:
     toolbar:
-      - pessoafisica.pessoasfisicas
-      - profissionalsaude.profissionaissaude
-      - atendimento.atendimentos
     actions:
     top:
     center:
@@ -31,7 +28,6 @@ application:
       - profissionalsaude.minhaagenda
     boxes:
       - abrirsala
-      - configurarzoom
       - pessoafisica.pessoasfisicas
       - nucleo.nucleos
       - unidade.unidades
@@ -43,7 +39,7 @@ application:
     adder:
     search:
     usermenu:
-      - dev.icons
+      - configurarzoom
       - user.users
       - log.logs
       - email.emails
