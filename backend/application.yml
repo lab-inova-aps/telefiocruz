@@ -39,6 +39,7 @@ application:
     adder:
     search:
     usermenu:
+      - profile.userprofile
       - configurarzoom
       - user.users
       - log.logs

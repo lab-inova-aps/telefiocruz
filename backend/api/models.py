@@ -351,7 +351,7 @@ class Unidade(models.Model):
         return (
             super()
             .serializer().actions('unidade.edit')
-            .fieldset("Dados Gerais", (("nome", "cnes"), 'gestores', 'operadores'))
+            .fieldset("Dados Gerais", ("foto", ("nome", "cnes"), 'gestores', 'operadores'))
             .fieldset("Endereço", (("cep", "bairro"), "logradouro", ("numero", "municipio")))
             .fieldset("Geolocalização", (("latitude", "longitude"), 'get_mapa'))
             .queryset("Profissionais de Saúde", 'get_profissionais_saude')
@@ -361,7 +361,7 @@ class Unidade(models.Model):
         return (
             super()
             .formfactory()
-            .fieldset("Dados Gerais", (("nome", "cnes"), 'gestores:pessoafisica.add', 'operadores:pessoafisica.add'))
+            .fieldset("Dados Gerais", ("foto", ("nome", "cnes"), 'gestores:pessoafisica.add', 'operadores:pessoafisica.add'))
             .fieldset("Endereço", (("cep", "bairro"), "logradouro", ("numero", "municipio")))
             .fieldset("Geolocalização", (("latitude", "longitude"),))
         )

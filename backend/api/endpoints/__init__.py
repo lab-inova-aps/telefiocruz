@@ -219,7 +219,7 @@ class EventoZoom(endpoints.PublicEndpoint):
 
 class ConfigurarZoom(endpoints.Endpoint):
     class Meta:
-        icon = 'video'
+        # icon = 'video'
         verbose_name = 'Configurar Zoom'
 
     def get(self):
