@@ -1296,7 +1296,7 @@ class TipoExame(models.Model):
     
     def formfactory(self):
         return (
-            super().formfactory().fields('nome')
+            super().formfactory().fields('codigo', 'nome', 'detalhe')
         )
 
 
