@@ -1244,56 +1244,6 @@ class EncaminhamentosCondutas(models.Model):
         return '{} - {}'.format(self.data.strftime('%d/%m/%Y %H:%M'), self.responsavel)
 
 
-class CertificadoDigital(models.Model):
-    user = models.ForeignKey(User, verbose_name="Usuário", on_delete=models.CASCADE)
-    arquivo = models.FileField(
-        verbose_name="Arquivo", upload_to="certificados_digitais"
-    )
-    descricao = models.CharField(verbose_name="Descrição", max_length=255)
-    validade = models.DateField(verbose_name="Validade")
-
-    class Meta:
-        verbose_name = "Certificado Digital"
-        verbose_name_plural = "Certificados Digitais"
-
-    def __str__(self):
-        return "{} - (VÁLIDO ATÉ {})".format(
-            self.descricao, self.validade.strftime("%d/%m/%Y")
-        )
-
-    def assinar(
-        self, caminho_arquivo, senha, tipo_documento=None, codigo_autenticacao=None
-    ):
-        return signer.sign(
-            pfx_file_path=self.arquivo.path,
-            passwd=senha,
-            sign_img=True,
-            bgcolor="#ebf3e5",
-            pdf_file_path=caminho_arquivo,
-            document_type=tipo_documento,
-            authentication_code=codigo_autenticacao,
-            x=0,
-            y=0,
-        )
-
-    def testar(self, senha):
-        try:
-            return self.descricao == signer.subject(self.arquivo.path, senha).get("CN")
-        except Exception:
-            return False
-
-    def save(self, *args, **kwargs):
-        self.descricao = ""
-        self.validade = date.today()
-        super().save(*args, **kwargs)
-        try:
-            self.validade = signer.expiration_date(self.arquivo.path, self.passwd)
-            self.descricao = signer.subject(self.arquivo.path, self.passwd).get("CN")
-            super().save(*args, **kwargs)
-        except Exception:
-            pass
-
-
 class DocumentoQuerySet(models.QuerySet):
     def all(self):
         return self
@@ -1330,10 +1280,10 @@ class TipoExameQuerySet(models.QuerySet):
 
 
 class TipoExame(models.Model):
+    codigo = models.CharField(verbose_name='Código', null=True)
     nome = models.CharField(verbose_name='Nome')
     detalhe = models.CharField(verbose_name='Detalhe', blank=True, null=True)
     profissional_saude = models.ForeignKey(ProfissionalSaude, verbose_name='Profissional de Saúde', on_delete=models.CASCADE, null=True, blank=True)
-    codigo = models.CharField(verbose_name='Código', null=True)
 
     class Meta:
         verbose_name = 'Tipo de Exame'
@@ -1343,6 +1293,12 @@ class TipoExame(models.Model):
 
     def __str__(self):
         return self.nome
+    
+    def formfactory(self):
+        return (
+            super().formfactory().fields('nome')
+        )
+
 
 
 class MedicamentoQuerySet(models.QuerySet):
@@ -1362,4 +1318,9 @@ class Medicamento(models.Model):
 
     def __str__(self):
         return self.nome
+    
+    def formfactory(self):
+        return (
+            super().formfactory().fields('nome')
+        )
 
