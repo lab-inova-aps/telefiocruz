@@ -1,0 +1,21 @@
+services:
+  app:
+    ports: !override
+      - 8000
+    depends_on:
+      selenium:
+        condition: service_started
+    entrypoint: python manage.py integration_test api.tests.IntegrationTestCase --noinput
+  
+  selenium:
+    hostname: selenium
+    env_file:
+      - .env
+      - .env.local
+    ports:
+      - "4444"
+    build:
+      context: selenium
+      dockerfile: Dockerfile
+    restart: always
+    entrypoint: ./run.sh

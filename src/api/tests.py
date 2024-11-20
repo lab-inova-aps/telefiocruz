@@ -93,6 +93,7 @@ class IntegrationTestCase(SeleniumTestCase):
             self.choose('Área', 'Psiquiatria')
             self.click('Enviar')
             self.logout('000.000.000-00')
+            return
 
         # Acessando como super-usuário para cadastrar pessoas físicas
         if self.step('2'):

@@ -689,7 +689,7 @@ class ProfissionalSaude(models.Model):
                 )[0]
                 ids.append(hps.id)
             inicial += timedelta(days=1)
-        HorarioProfissionalSaude.objects.filter(profissional_saude=self, data_hora__gte=datetime.now(), atendimentos_profissional_saude__isnull=True, atendimentos_especialista__isnull=True).exclude(id__in=ids).delete()
+        HorarioProfissionalSaude.objects.filter(profissional_saude=self, atendimentos_profissional_saude__isnull=True, atendimentos_especialista__isnull=True).exclude(id__in=ids).delete()
 
     @meta('Estabelecimento')
     def get_estabelecimento(self):
@@ -798,6 +798,7 @@ class AtendimentoQuerySet(models.QuerySet):
         scheduled = {}
         midnight = datetime.combine(datetime.now().date(), time())
         if profissional:
+            horarios = profissional.horarioprofissionalsaude_set.filter(data_hora__gte=datetime.now())
             # agenda ocupada do profissional de saúde
             for data_hora, pk in HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=profissional.pessoa_fisica, atendimentos_profissional_saude__isnull=False).values_list('data_hora', 'atendimentos_profissional_saude').order_by('-data_hora'):
                 scheduled[data_hora] = pk
@@ -809,16 +810,14 @@ class AtendimentoQuerySet(models.QuerySet):
                     scheduled[data_hora] = pk
                 for data_hora, pk in HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=especialista.pessoa_fisica, atendimentos_especialista__isnull=False).values_list('data_hora', 'atendimentos_especialista').order_by('-data_hora'):
                     scheduled[data_hora] = pk
-            qs = profissional.horarioprofissionalsaude_set
-            for horario in qs.filter(data_hora__gte=datetime.now()):
+                # cruzando os horários de atendimento do profissional de saúde com os do especialista
+                horarios_especialista = especialista.horarioprofissionalsaude_set.filter(data_hora__gte=datetime.now())
+                horarios = horarios.filter(data_hora__in=horarios_especialista.values_list('data_hora', flat=True))
+        
+            for horario in horarios:
               if horario.data_hora not in scheduled:
                 selectable.append(horario.data_hora)
-            if especialista:
-                qs = HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude=especialista)
-                if not is_proprio_profissional:
-                    qs = selectable.qs(data_hora__in=selectable)
-                selectable = qs.values_list('data_hora', flat=True)
-
+    
         scheduler = Scheduler(
             chucks=3,
             watch=['profissional', 'especialista'],

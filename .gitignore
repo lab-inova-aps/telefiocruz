@@ -1,4 +1,4 @@
-backend/static
+src/static
 **/django/static/
 src/django/slth/cmd/init/boilerplate/package-lock.json
 slthcore.egg-info
@@ -15,9 +15,9 @@ src/django/slth/static/index.html
 db.sqlite3
 .vscode
 .steps
-local.env
+.env.local
 admin/
-.deploy
+.docker
 dist
 node_modules
 *.pyc

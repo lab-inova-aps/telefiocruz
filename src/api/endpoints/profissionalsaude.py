@@ -69,7 +69,7 @@ class AlterarAgenda(endpoints.InstanceEndpoint[ProfissionalSaude]):
         return super().post()
     
     def check_permission(self):
-        return self.check_role('g', 'o', 'ou') or self.instance.pessoa_fisica.cpf == self.request.user.username
+        return self.check_role('g', 'o', 'ou')#  or self.instance.pessoa_fisica.cpf == self.request.user.username
 
 
 class DefinirHorario(endpoints.InstanceEndpoint[ProfissionalSaude]):

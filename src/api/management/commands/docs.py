@@ -3,7 +3,7 @@ from datetime import datetime
 from slth.pdf import PdfWriter
 from django.core.management.base import BaseCommand
 
-LOGO = '/Users/breno/Documents/Workspace/telefiocruz/backend/api/static/images/icon-black.svg'
+LOGO = '/Users/breno/Documents/Workspace/telefiocruz/src/api/static/images/icon-black.svg'
 URL = 'http://telefiocruz.aplicativo.click/arquivo/1518eb3c61a311ef9ca22a8c307b6d2c/'
 
 

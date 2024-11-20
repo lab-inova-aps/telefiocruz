@@ -2,63 +2,52 @@ services:
   app: &app
     hostname: app
     env_file:
-      - base.env
-      - local.env
+      - .env
+      - .env.local
     ports:
       - "8000:8000"
     build:
-      context: backend
+      context: src
       dockerfile: Dockerfile
     restart: always
     volumes:
-      - .deploy/media:/opt/deploy/media
-      - .deploy/static:/opt/deploy/static
+      - ./src:/app
     depends_on:
       postgres:
         condition: service_healthy
-    healthcheck:
-      test: curl http://127.0.0.1:8000/api/login/
-    working_dir: /opt/deploy
-    entrypoint: ./entrypoint.sh
-  tester:
-    <<: *app
-    depends_on:
-      selenium:
+      redis:
         condition: service_started
-    entrypoint: ./test.sh
-  selenium:
-    hostname: selenium
-    env_file:
-      - base.env
-      - local.env
-    ports:
-      - "4444"
-    build:
-      context: selenium
-      dockerfile: Dockerfile
-    restart: always
-    entrypoint: ./run.sh
+    healthcheck:
+      test: curl http://127.0.0.1:8000/api/auth/login/
+    working_dir: /app
+    entrypoint: sh -c "python manage.py sync && gunicorn api.wsgi -b 0.0.0.0:8000 -w 3 --log-level info --reload --timeout 3600"
+  
   redis:
     hostname: redis
     env_file:
-      - base.env
-      - local.env
+      - .env
+      - .env.local
     image: redis
     restart: always
     ports:
       - "6379"
     command: redis-server --loglevel warning
     volumes:
-      - .deploy/redis:/data
+      - .docker/redis:/data
+  
   postgres:
     env_file:
-      - base.env
-      - local.env
+      - .env
+      - .env.local
     image: postgres
     hostname: postgres
     ports:
       - "5432"
     volumes:
-      - .deploy/postgres:/var/lib/postgresql/data
+      - .docker/postgres:/var/lib/postgresql/data
     healthcheck:
       test: psql -U postgres -d $$POSTGRES_DB -c "SELECT version();"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
