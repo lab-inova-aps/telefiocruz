@@ -512,9 +512,6 @@ class ProfissionalSaude(models.Model):
     # Teleatendimento
     nucleo = models.ForeignKey(Nucleo, verbose_name='Núcleo', null=True, on_delete=models.CASCADE)
 
-    # Zoom token
-    zoom_token = models.TextField(verbose_name='Zoom Token', null=True, blank=True)
-
     objects = ProfissionalSaudeQueryset()
 
     class Meta:
@@ -522,19 +519,6 @@ class ProfissionalSaude(models.Model):
         verbose_name = "Profissional de Saúde"
         verbose_name_plural = "Profissionais de Saúde"
         search_fields = 'pessoa_fisica__cpf', 'pessoa_fisica__nome'
-
-    def set_zoom_token(self, zoom_token):
-        self.zoom_token = signing.dumps(zoom_token)
-    
-    def get_zoom_token(self):
-        return signing.loads(self.zoom_token) if self.zoom_token else None
-    
-    @meta('Token do Zoom')
-    def get_partial_zoom_token(self):
-        if self.zoom_token:
-            zoom_token = self.get_zoom_token()
-            return '{}...{}'.format(zoom_token[0:20], zoom_token[-20:])
-        return '-'
 
     def assinar_arquivo_pdf(self, caminho_arquivo, token):
         url = 'https://certificado.vidaas.com.br/valid/api/v1/trusted-services/signatures'
@@ -555,41 +539,10 @@ class ProfissionalSaude(models.Model):
         PILImage.open(caminho_arquivo).save(caminho_arquivo_pdf, "PDF")
         self.assinar_arquivo_pdf(caminho_arquivo_pdf)
 
-    def configurar_zoom(self, authorization_code, redirect_url):
-        url = 'https://zoom.us/oauth/token?grant_type=authorization_code&code={}&redirect_uri={}'.format(authorization_code, redirect_url)
-        auth = base64.b64encode('{}:{}'.format(os.environ.get('ZOOM_API_KEY'), os.environ.get('ZOOM_API_SEC')).encode()).decode()
-        headers = {"Content-Type": "application/x-www-form-urlencoded", "Authorization": "Basic {}".format(auth)}
-        response = requests.post(url, headers=headers).json()
-        self.set_zoom_token(response['refresh_token'])
-        self.save()
+    
 
     def criar_sala_virtual(self, nome):
-        if self.zoom_token:
-            url = 'https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token={}'.format(self.get_zoom_token())
-            auth = base64.b64encode('{}:{}'.format(os.environ.get('ZOOM_API_KEY'), os.environ.get('ZOOM_API_SEC')).encode()).decode()
-            headers = {"Content-Type": "application/x-www-form-urlencoded", "Authorization": "Basic {}".format(auth)}
-            response = requests.post(url, headers=headers).json()
-            print(response)
-            self.set_zoom_token(response['refresh_token'])
-            access_token = response['access_token']
-            self.save()
-            data = {"topic": nome, "settings": {"join_before_host": True}}
-            url = 'https://api.zoom.us/v2/users/me/meetings'
-            headers = {'authorization': 'Bearer ' + response['access_token'], 'content-type': 'application/json'}
-            print(url, data)
-            response = requests.post(url, json=data, headers=headers).json()
-            print(response)
-            number = str(response.get('id'))
-            password = response.get('encrypted_password')
-
-            url2 = 'https://api.zoom.us/v2/users/me/zak/'
-            headers2 = {"Authorization": "Bearer {}".format(access_token)}
-            zak = requests.get(url2, headers=headers2).json()['token']
-            
-            cache.set(number, dict(username=self.pessoa_fisica.cpf, number=number, password=password, zak=zak), 3600)
-            
-            return number
-        return None
+        pass
 
     def formfactory(self):
         return (
@@ -618,7 +571,6 @@ class ProfissionalSaude(models.Model):
                 .fieldset("Horário de Atendimento", ("get_horarios_atendimento",))
                 .fieldset("Agenda", ("get_agenda",))
             .parent()
-            .fieldset("Configuração de WebConf", ("is_zoom_configurado", 'get_partial_zoom_token'), roles=['a'])
         )
 
     def __str__(self):
@@ -694,15 +646,6 @@ class ProfissionalSaude(models.Model):
     @meta('Estabelecimento')
     def get_estabelecimento(self):
         return self.nucleo if self.nucleo_id else self.unidade
-    
-    def save(self, *args, **kwargs):
-        if self.zoom_token is None:
-            self.zoom_token = os.environ.get('ZOOM_API_TOKEN')
-        super().save(*args, **kwargs)
-
-    @meta('Zoom Configurado?')
-    def is_zoom_configurado(self):
-        return self.zoom_token is not None
 
 
 class HorarioAtendimento(models.Model):

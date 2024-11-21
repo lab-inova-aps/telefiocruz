@@ -4,8 +4,7 @@ from django.conf import settings
 
 from slth.views import dispatcher, index, service_worker
 from django.conf.urls.static import static
-
-from . import zoom
+from django.shortcuts import render
 
 urlpatterns = [
     path('', index),
@@ -13,5 +12,5 @@ urlpatterns = [
     re_path(r'^app/(?P<path>.*)/$', index),
     path('api/', include(urls)),
     path('', dispatcher),
-    path('zoom/', zoom.view)
+    path('zoom/', lambda request: render(request, 'zoom.html', {}))
 ] + static('media', document_root=settings.MEDIA_ROOT)

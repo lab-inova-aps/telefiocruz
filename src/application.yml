@@ -40,7 +40,6 @@ application:
     search:
     usermenu:
       - profile.userprofile
-      - configurarzoom
       - user.users
       - log.logs
       - email.emails

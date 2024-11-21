@@ -18,3 +18,8 @@ aside .menu .item:hover{
     border: solid;
     width: 180px;
 }
+
+#container .container{
+    height: 400px !important;
+    padding-top: 0 !important;
+}

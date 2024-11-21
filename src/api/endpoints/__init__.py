@@ -64,14 +64,6 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
         verbose_name = 'Sala Virtual'
 
     def get(self):
-        # se a sala virtual ainda não foi criada
-        if not RUNNING_TESTING:
-            # criar sala virtual caso esteja sendo acessado pelo profissional responsável
-            if self.instance.profissional.pessoa_fisica.cpf == self.request.user.username:
-                self.instance.check_webconf()
-            # redirecionar para a sala de espera
-            # else:
-            #     self.redirect('/api/salaespera/?token={}'.format(self.instance.token))
         return (
             self.serializer().actions('atendimento.anexararquivo', 'atendimento.emitiratestado', 'atendimento.solicitarexames', 'atendimento.prescrevermedicamento')
             .endpoint('VideoChamada', 'videochamada', wrap=False)
@@ -93,7 +85,7 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
 class VideoChamada(endpoints.InstanceEndpoint[Atendimento]):
     def get(self):
         cpf = self.request.user.username if self.request.user.is_authenticated else self.instance.paciente.cpf
-        return ZoomMeet(self.instance.numero_webconf, cpf)
+        return ZoomMeet(self.instance.token, cpf)
     
     def check_permission(self):
         return (
@@ -116,19 +108,12 @@ class AbrirSala(endpoints.Endpoint):
     def get(self):
         token = self.request.GET.get('token')
         if token:
-            if cache.get(token):
-                return ZoomMeet(token, self.request.user.username if self.request.user.is_authenticated else 'Convidado')
-            self.redirect('/app/dashboard/')
+            return ZoomMeet(token, self.request.user.username if self.request.user.is_authenticated else 'Convidado')
         else:
-            profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
-            number = profissional_saude.criar_sala_virtual(profissional_saude.pessoa_fisica.nome)
-            self.redirect(f'/api/abrirsala/?token={number}')
+            self.redirect(f'/api/abrirsala/?token={uuid1().hex}')
 
     def check_permission(self):
-        profissional_saude = ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username).first()
-        return 0 and (self.request.GET.get('token') or (profissional_saude and profissional_saude.zoom_token))
-
-
+        return self.request.user.is_authenticated or self.request.GET.get('token')
 
 
 class FazerAlgo(endpoints.Endpoint):
@@ -210,49 +195,6 @@ class Vidaas(endpoints.Endpoint):
 
     def check_permission(self):
         return self.check_role('ps')
-
-
-class EventoZoom(endpoints.PublicEndpoint):
-    def post(self):
-        return {}
-
-
-class ConfigurarZoom(endpoints.Endpoint):
-    class Meta:
-        # icon = 'video'
-        verbose_name = 'Configurar Zoom'
-
-    def get(self):
-        redirect_url = '{}/app/configurarzoom/'.format(settings.SITE_URL)
-        profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
-        
-        if profissional_saude.zoom_token:
-            info = 'A autorização concedida a Telefiocruz para criar video-chamadas por você será revogada.'
-        else:
-            info = 'Você será redirecionado para o site da Zoom (https://zoom.us) para autorizar a Telefiocruz criar video-chamadas por você.'
-       
-        authorization_code = self.request.GET.get('code')
-        if authorization_code:
-            profissional_saude.configurar_zoom(authorization_code, redirect_url)
-            return Response('Configuração realizada com sucesso.', redirect='/api/dashboard/')
-        return self.formfactory().info(info)
-
-    def post(self):
-        profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
-        if profissional_saude.zoom_token:
-            profissional_saude.zoom_token = None
-            profissional_saude.save()
-            return Response('Autorização revogada com sucesso.', redirect='/api/dashboard/')
-        else:
-            redirect_url = '{}/app/configurarzoom/'.format(settings.SITE_URL)
-            url = 'https://zoom.us/oauth/authorize?response_type=code&client_id={}&redirect_uri={}'.format(
-                os.environ.get('ZOOM_API_KEY'), redirect_url
-            )
-            self.redirect(url)
-
-    def check_permission(self):
-        return self.check_role('ps', superuser=False) or ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username, zoom_token__isnull=True).exists()
-
 
 
 class AssinarViaQrCode(endpoints.InstanceEndpoint[Atendimento]):
