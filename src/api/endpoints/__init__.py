@@ -1,6 +1,7 @@
 import os
 import binascii
 from uuid import uuid1
+from datetime import datetime
 from django.core.files.base import ContentFile
 from slth import endpoints
 from django.conf import settings
@@ -22,14 +23,13 @@ MENSAGEM_ASSINATURA_DIGITAL = '''
 '''
 
 
-
 class SalaEspera(endpoints.PublicEndpoint):
     class Meta:
         verbose_name = 'Sala de Espera'
 
     def get(self):
         atendimento = Atendimento.objects.get(token=self.request.GET.get('token'))
-        if atendimento.numero_webconf:
+        if atendimento.iniciado_em:
             if self.request.user.is_authenticated:
                 self.redirect('/api/salavirtual/{}/'.format(atendimento.pk))
             self.redirect('/api/salavirtual/{}/?token={}'.format(atendimento.pk, atendimento.token))
@@ -64,6 +64,9 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
         verbose_name = 'Sala Virtual'
 
     def get(self):
+        if self.instance.iniciado_em is None:
+            self.instance.iniciado_em = datetime.now()
+            self.instance.save()
         return (
             self.serializer().actions('atendimento.anexararquivo', 'atendimento.emitiratestado', 'atendimento.solicitarexames', 'atendimento.prescrevermedicamento')
             .endpoint('VideoChamada', 'videochamada', wrap=False)
@@ -73,7 +76,7 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
     
     def check_permission(self):
         return (
-            1 or self.instance.finalizado_em is None
+            self.instance.finalizado_em is None
             and (
                 self.check_role('ps')
                 or self.instance.paciente.cpf == self.request.user.username
@@ -113,7 +116,7 @@ class AbrirSala(endpoints.Endpoint):
             self.redirect(f'/api/abrirsala/?token={uuid1().hex}')
 
     def check_permission(self):
-        return self.request.user.is_authenticated or self.request.GET.get('token')
+        return self.request.user.is_superuser or self.request.GET.get('token')
 
 
 class FazerAlgo(endpoints.Endpoint):
@@ -124,7 +127,8 @@ class FazerAlgo(endpoints.Endpoint):
 
     def get(self):
         return self.formfactory().fields('x').onsuccess(message='Fantástico :D', dispose=True)
-    
+
+
 class Estatistica(endpoints.PublicEndpoint):
     class Meta:
         icon = 'line-chart'

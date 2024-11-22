@@ -54,10 +54,10 @@ class AtualizarPaciente(endpoints.EditEndpoint[PessoaFisica]):
         return self.check_role('o', 'ps')
     
 
-class HistoricoPaciente(endpoints.InstanceEndpoint[PessoaFisica]):
+class HistoricoPaciente(endpoints.ViewEndpoint[PessoaFisica]):
     class Meta:
         icon = 'history'
-        verbose_name = 'Histórico do Paciente'
+        verbose_name = 'Detalhe e Histórico do Paciente'
 
     def get(self):
         return super().get().queryset('Histórico de Atendimentos', 'get_atendimentos')

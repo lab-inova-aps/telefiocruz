@@ -40,11 +40,11 @@
         <td><b>Tipo:</b></td>
         <td>{{ atendimento.tipo }}</td>
         <td><b>Unidade:</b></td>
-        <td>{{ atendimento.unidade }}</td>
+        <td>{{ atendimento.unidade|default:"-" }}</td>
     </tr>
     <tr>
         <td><b>Município:</b></td>
-        <td>{{ atendimento.unidade.municipio }}</td>
+        <td>{{ atendimento.unidade.municipio|default:"-" }}</td>
         <td><b>Duração:</b></td>
         <td>{{ atendimento.duracao }} minutos</td>
     </tr>
@@ -56,7 +56,7 @@
     </tr>
     <tr>
         <td><b>URL Externa:</b></td>
-        <td colspan="3">{{ atendimento.get_url_externa.url }}</td>
+        <td colspan="3">{{ atendimento.get_url_externa }}</td>
     </tr>
 </table>
 
@@ -92,7 +92,7 @@
             <td><b>Registro Profissional:</b></td>
             <td>{{ atendimento.profissional.get_registro_profissional }}</td>
             <td><b>Registro Especialista:</b></td>
-            <td>{{ atendimento.profissional.get_registro_especialista }}</td>
+            <td>{{ atendimento.profissional.get_registro_especialista|default:"-" }}</td>
         </tr>
     </table>
 {% endif %}

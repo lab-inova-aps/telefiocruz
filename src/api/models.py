@@ -783,7 +783,7 @@ class Atendimento(models.Model):
         null=True
     )
     unidade = models.ForeignKey(
-        Unidade, null=True, on_delete=models.CASCADE
+        Unidade, null=True, on_delete=models.CASCADE, blank=True
     )
     especialista = models.ForeignKey(
         ProfissionalSaude,
@@ -800,8 +800,8 @@ class Atendimento(models.Model):
         TipoAtendimento, verbose_name='Tipo de Atendimento', on_delete=models.CASCADE, pick=True
     )
 
-    cid = models.ManyToManyField(CID, verbose_name='CID')
-    ciap = models.ManyToManyField(CIAP, verbose_name='CIAP')
+    cid = models.ManyToManyField(CID, verbose_name='CID', blank=True)
+    ciap = models.ManyToManyField(CIAP, verbose_name='CIAP', blank=True)
 
     data = models.DateTimeField(blank=True)
     assunto = models.CharField(verbose_name='Motivo',max_length=200)
@@ -810,19 +810,6 @@ class Atendimento(models.Model):
         "PessoaFisica", verbose_name='Paciente', related_name="atendimentos_paciente", on_delete=models.PROTECT
     )
     duracao = models.IntegerField(verbose_name='Duração', null=True, choices=[(20, '20min'), (40, '40min'), (60, '1h')], pick=True, default=20)
-
-    # horario_profissional_saude = models.ForeignKey(
-    #     HorarioProfissionalSaude,
-    #     verbose_name="Horário",
-    #     on_delete=models.SET_NULL,
-    #     null=True, pick=True
-    # )
-    # horario_especialista = models.ForeignKey(
-    #     HorarioProfissionalSaude,
-    #     verbose_name="Horário",
-    #     on_delete=models.SET_NULL,
-    #     null=True, related_name='atendimento2'
-    # )
     horarios_profissional_saude = models.ManyToManyField(HorarioProfissionalSaude, verbose_name='Horários', blank=True, related_name='atendimentos_profissional_saude', pick=True)
     horarios_especialista = models.ManyToManyField(HorarioProfissionalSaude, verbose_name='Horários', blank=True, related_name='atendimentos_especialista', pick=True)
     horario_excepcional = models.BooleanField(
@@ -836,15 +823,12 @@ class Atendimento(models.Model):
         blank=True,
         help_text="Obrigatório para agendamentos em horário excepcional.",
     )
-    agendado_para = models.DateTimeField(verbose_name='Data de Início', null=True, blank=True)
+    agendado_para = models.DateTimeField(verbose_name='Data Prevista', null=True, blank=True)
+    iniciado_em = models.DateTimeField(verbose_name='Data de Início', null=True, blank=True)
     finalizado_em = models.DateTimeField(verbose_name='Data de Término', null=True, blank=True)
 
     motivo_cancelamento = models.TextField(verbose_name='Motivo do Cancelamento', null=True)
     motivo_reagendamento = models.TextField(verbose_name='Motivo do Cancelamento', null=True)
-
-    numero_webconf = models.CharField(verbose_name='Número da WebConf', null=True)
-    senha_webconf = models.CharField(verbose_name='Senha da WebConf', null=True)
-    limite_webconf = models.DateTimeField(verbose_name='Limite da WebConf', null=True)
 
     token = models.CharField(verbose_name='Token', null=True, blank=True)
 
@@ -855,13 +839,6 @@ class Atendimento(models.Model):
         verbose_name = "Atendimento"
         verbose_name_plural = "Atendimentos"
 
-    def check_webconf(self):
-        if 1 or not cache.get(self.numero_webconf):
-            self.numero_webconf = self.profissional.criar_sala_virtual('Atendimento #{}'.format(self.id))
-            self.senha_webconf = None
-            self.limite_webconf = None
-            self.save()
-
     def formfactory(self):
         return (
             super()
@@ -869,7 +846,7 @@ class Atendimento(models.Model):
             .fieldset(
                 "Dados Gerais",
                 (
-                    "unidade", "tipo", "especialidade",
+                    "tipo", "unidade", "especialidade",
                 ),
             )
             .fieldset(
@@ -896,11 +873,10 @@ class Atendimento(models.Model):
                 "Dados Gerais",
                 (
                     ("tipo", "unidade", "unidade__municipio"),
-                    ("agendado_para", "finalizado_em", "duracao_webconf"),
+                    ("agendado_para", "iniciado_em", "finalizado_em"),
                     "get_url_externa"
                 ) 
             )
-            .fieldset("Web Conferência", (("numero_webconf", "senha_webconf", "limite_webconf"),), roles=('su',))
             .group()
                 .section('Detalhamento')
                     .fieldset(
@@ -1006,10 +982,10 @@ class Atendimento(models.Model):
 
     @meta('URL Externa')
     def get_url_externa(self):
-        return FileLink('{}/app/atendimento/publico/?token={}'.format(settings.SITE_URL, self.token))
+        return '{}/app/atendimento/publico/?token={}'.format(settings.SITE_URL, self.token)
     
     def get_qrcode_link_webconf(self):
-        return qrcode_base64(self.get_url_externa()['url'])
+        return qrcode_base64(self.get_url_externa())
 
     def __str__(self):
         return "%s - %s" % (self.id, self.assunto)

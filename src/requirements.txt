@@ -1,2 +1,2 @@
-slthlib
-slthcore
+slthlib==0.0.8
+slthcore==0.2.8

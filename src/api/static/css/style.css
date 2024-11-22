@@ -23,3 +23,8 @@ aside .menu .item:hover{
     height: 400px !important;
     padding-top: 0 !important;
 }
+
+
+@media (max-width: 600px) {
+    
+}

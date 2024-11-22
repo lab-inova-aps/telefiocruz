@@ -25,8 +25,8 @@
 	  window.onload = () => {
 		const api = new JitsiMeetExternalAPI("jitsi.aplicativo.click", {
 		  roomName: parameteres.token,
-		  width: "50%",
-		  height: "350px",
+		  width: Math.min(window.innerWidth, 500),
+		  height: 350,
 		  parentNode: document.querySelector('#jaas-container'),
 		  userInfo: {
 			 displayName: parameteres.username
@@ -54,9 +54,10 @@
 			SHOW_CHROME_EXTENSION_BANNER: false,
 			DISABLE_DOMINANT_SPEAKER_INDICATOR: true,
 			LANG_DETECTION: true,
+			TOOLBAR_ALWAYS_VISIBLE: true,
 			VIDEO_QUALITY_LABEL_DISABLED: true,
 			CONNECTION_INDICATOR_DISABLED: true,
-			TOOLBAR_BUTTONS: ['microphone', 'camera','fullscreen', 'tileview', 'fullscreen', "hangup"]
+			TOOLBAR_BUTTONS: ['microphone', 'camera','fullscreen', 'fullscreen', 'tileview', "hangup"]
 		  },
 		});
 		api.addEventListener("readyToClose", () => {

@@ -2,7 +2,7 @@ from datetime import datetime
 from slth import endpoints
 from slth import tests
 from ..models import Atendimento, Nucleo, TipoAtendimento, ProfissionalSaude, TipoExame, Medicamento, PessoaFisica, \
-    AnexoAtendimento, EncaminhamentosCondutas
+    AnexoAtendimento, EncaminhamentosCondutas, Unidade
 from slth import forms
 from ..mail import send_mail
 
@@ -24,7 +24,7 @@ class Add(endpoints.AddEndpoint[Atendimento]):
         verbose_name = 'Cadastrar Atendimento'
 
     def get(self):
-        return super().get().hidden('especialista')
+        return super().get().hidden('unidade', 'especialista')
     
     def getform(self, form):
         form = super().getform(form)
@@ -59,6 +59,8 @@ class Add(endpoints.AddEndpoint[Atendimento]):
         
     def on_tipo_change(self, controller, values):
         tipo = values.get('tipo')
+        if self.get_unidade_queryset(Unidade.objects, values).exists():
+            controller.show('unidade')
         controller.reload('especialidade', 'profissional', 'especialista', 'agendado_para')
         if tipo and tipo.nome != 'Teleconsulta':
             controller.show('especialista')
@@ -73,8 +75,8 @@ class Add(endpoints.AddEndpoint[Atendimento]):
         tipo = values.get('tipo')
         unidade = values.get('unidade')
         especialidade = values.get('especialidade')
-        if unidade and especialidade and tipo:
-            queryset = queryset.filter(unidade=unidade)
+        if especialidade and tipo:
+            queryset = queryset.filter(unidade=unidade) if unidade else queryset
             if tipo.id == TipoAtendimento.TELECONSULTA:
                 queryset = queryset.filter(especialidade=especialidade)
             if self.check_role('ps'):
@@ -224,7 +226,7 @@ class EmitirAtestado(endpoints.InstanceEndpoint[Atendimento]):
         return super().post()
     
     def check_permission(self):
-        return self.check_role('ps')
+        return self.instance.finalizado_em is None and self.check_role('ps')
 
 
 class SolicitarExames(endpoints.InstanceEndpoint[Atendimento]):
@@ -236,7 +238,7 @@ class SolicitarExames(endpoints.InstanceEndpoint[Atendimento]):
         verbose_name = 'Solicitar Exames'
 
     def get(self):
-        return self.formfactory().fields('tipos:cadastrartipoexame')
+        return self.formfactory().fields('tipos:tipoexame.add')
     
     def post(self):
         dados = dict(tipos=self.cleaned_data['tipos'])
@@ -244,7 +246,7 @@ class SolicitarExames(endpoints.InstanceEndpoint[Atendimento]):
         return super().post()
     
     def check_permission(self):
-        return self.check_role('ps')
+        return self.instance.finalizado_em is None and self.check_role('ps')
 
 
 class PrescreverMedicamento(endpoints.InstanceEndpoint[Atendimento]):
@@ -263,7 +265,7 @@ class PrescreverMedicamento(endpoints.InstanceEndpoint[Atendimento]):
 
     def get(self):
         return self.formfactory().fields(
-            *[(f'medicamento_{i}' if i else f'medicamento_{i}:cadastrarmedicamento', f'orientacao_{i}') for i in range(0, 10)]
+            *[(f'medicamento_{i}' if i else f'medicamento_{i}:medicamento.add', f'orientacao_{i}') for i in range(0, 5)]
         )
     
     def post(self):
@@ -272,7 +274,7 @@ class PrescreverMedicamento(endpoints.InstanceEndpoint[Atendimento]):
         return super().post()
     
     def check_permission(self):
-        return self.check_role('ps')
+        return self.instance.finalizado_em is None and self.check_role('ps')
 
 
 class RegistrarEcanminhamentosCondutas(endpoints.ChildEndpoint):
@@ -299,6 +301,10 @@ class RegistrarEcanminhamentosCondutas(endpoints.ChildEndpoint):
         )
     
     def post(self):
+        if self.source.iniciado_em is None:
+            self.source.iniciado_em = datetime.now()
+        self.source.finalizado_em = datetime.now()
+        self.source.save()
         self.source.criar_anexo('Atendimento', 'documentos/atendimento.html', self.source.profissional.pessoa_fisica.cpf, {})
         self.redirect(f'/api/atendimento/view/{self.source.id}/')
 
@@ -353,7 +359,7 @@ class FinalizarAtendimento(endpoints.ChildEndpoint):
 
 
     def check_permission(self):
-        return 1 or (1 or self.source.finalizado_em is None) and self.request.user.username == self.source.profissional.pessoa_fisica.cpf and self.source.encaminhamentoscondutas_set.filter(responsavel__pessoa_fisica__cpf=self.request.user.username).exists()
+        return self.request.user.username == self.source.profissional.pessoa_fisica.cpf and self.source.encaminhamentoscondutas_set.filter(responsavel__pessoa_fisica__cpf=self.request.user.username).exists()
 
 
 class Publico(endpoints.PublicEndpoint):
