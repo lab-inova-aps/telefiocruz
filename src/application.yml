@@ -23,8 +23,8 @@ application:
     top:
     center:
       - profissionalsaude.vinculos
-      - profissionalsaude.proximosatendimentos
-      - pessoafisica.proximosatendimentos
+      - profissionalsaude.atendimentosdodia
+      - pessoafisica.atendimentosdodia
       - profissionalsaude.minhaagenda
     boxes:
       - abrirsala

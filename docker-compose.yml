@@ -20,7 +20,7 @@ services:
     healthcheck:
       test: curl http://127.0.0.1:8000/api/auth/login/
     working_dir: /app
-    entrypoint: sh -c "python manage.py sync && gunicorn api.wsgi -b 0.0.0.0:8000 -w 3 --log-level info --reload --timeout 3600"
+    entrypoint: sh -c "python manage.py sync && gunicorn api.wsgi -b 0.0.0.0:8000 --enable-stdio-inheritance --error-logfile '-' -w 3 --log-level info --reload --timeout 3600"
   
   redis:
     hostname: redis

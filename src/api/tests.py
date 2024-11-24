@@ -280,7 +280,7 @@ class IntegrationTestCase(SeleniumTestCase):
         # Acessando teleconsulta como paciente
         if self.step('7'):
             self.login('577.106.830-61', '123')
-            self.look_at('Próximos Atendimentos')
+            self.look_at('Atendimentos do Dia')
             self.click('Visualizar')
 
             self.click('Sala Virtual')
@@ -294,7 +294,7 @@ class IntegrationTestCase(SeleniumTestCase):
         # Acessando como profissional de saúde
         if self.step('8'):
             self.login('779.067.860-41', '123')
-            self.look_at('Próximos Atendimentos')
+            self.look_at('Atendimentos do Dia')
             self.click('Visualizar')
 
             self.click('Sala Virtual')
@@ -359,7 +359,7 @@ class IntegrationTestCase(SeleniumTestCase):
         # Acessando tele-interconsulta como paciente
         if self.step('11'):
             self.login('577.106.830-61', '123')
-            self.look_at('Próximos Atendimentos')
+            self.look_at('Atendimentos do Dia')
             self.click('Visualizar')
 
             self.click('Sala Virtual')
@@ -373,7 +373,7 @@ class IntegrationTestCase(SeleniumTestCase):
         # Acessando tele-interconsulta como tele-interconsultor
         if self.step('12'):
             self.login('385.895.870-02', '123')
-            self.look_at('Próximos Atendimentos')
+            self.look_at('Atendimentos do Dia')
             self.click('Visualizar')
             self.wait()
 
@@ -391,7 +391,7 @@ class IntegrationTestCase(SeleniumTestCase):
         # Acessando tele-interconsulta como profissional de saúde
         if self.step('13'):
             self.login('779.067.860-41', '123')
-            self.look_at('Próximos Atendimentos')
+            self.look_at('Atendimentos do Dia')
             self.click('Visualizar')
 
             self.click('Sala Virtual')

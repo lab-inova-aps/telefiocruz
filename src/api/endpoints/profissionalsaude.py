@@ -111,12 +111,12 @@ class DefinirHorarios(endpoints.Endpoint):
         return super().post()
 
 
-class ProximosAtendimentos(endpoints.QuerySetEndpoint[Atendimento]):
+class AtendimentosDoDia(endpoints.QuerySetEndpoint[Atendimento]):
     class Meta:
-        verbose_name= 'Próximos Atendimentos'
+        verbose_name= 'Atendimentos do Dia'
 
     def get(self):
-        return super().get().proximos().fields('get_numero', 'tipo', 'paciente', 'assunto', 'get_agendado_para').actions('atendimento.view').lookup('ps', profissional__pessoa_fisica__cpf='username', especialista__pessoa_fisica__cpf='username')
+        return super().get().do_dia().fields('get_numero', 'tipo', 'paciente', 'assunto', 'get_agendado_para').actions('atendimento.view').lookup('ps', profissional__pessoa_fisica__cpf='username', especialista__pessoa_fisica__cpf='username')
     
     def check_permission(self):
         return self.check_role('ps', superuser=False)
@@ -128,7 +128,9 @@ class Vinculos(endpoints.ListEndpoint[ProfissionalSaude]):
         verbose_name= 'Meus Vínculos'
     
     def get(self):
-        return super().get().filter(pessoa_fisica__cpf=self.request.user).fields('get_estabelecimento', 'especialidade').actions("profissionalsaude.alteraragenda")
+        vinculos = super().get().search().filters().filter(pessoa_fisica__cpf=self.request.user).fields('get_estabelecimento', 'especialidade').actions("profissionalsaude.alteraragenda")
+        vinculos.metadata['search'].clear()
+        return vinculos
 
     def check_permission(self):
         return self.check_role('ps', superuser=False)

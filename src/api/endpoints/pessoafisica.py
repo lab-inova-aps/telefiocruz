@@ -34,9 +34,9 @@ class View(endpoints.ViewEndpoint[PessoaFisica]):
         return self.check_role('a')
 
 
-class ProximosAtendimentos(endpoints.QuerySetEndpoint[Atendimento]):
+class AtendimentosDoDia(endpoints.QuerySetEndpoint[Atendimento]):
     class Meta:
-        verbose_name= 'Próximos Atendimentos'
+        verbose_name= 'Atendimentos do Dia'
 
     def get(self):
         return super().get().proximos().fields('profissional', 'assunto', 'get_agendado_para').actions('atendimento.view').lookup('p', paciente__cpf='username')

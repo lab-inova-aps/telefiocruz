@@ -142,7 +142,7 @@ class Estatistica(endpoints.PublicEndpoint):
             )
             .bi(
                 ('get_total', 'get_total_profissioinais', 'get_total_pacientes'),
-                ('get_total_por_tipo', 'get_total_por_area'),
+                ('get_total_por_tipo', 'get_total_por_situacao', 'get_total_por_area'),
                 'get_total_por_mes',
                 'get_total_por_area_e_unidade'
             )

@@ -2,7 +2,7 @@ from datetime import datetime
 from slth import endpoints
 from slth import tests
 from ..models import Atendimento, Nucleo, TipoAtendimento, ProfissionalSaude, TipoExame, Medicamento, PessoaFisica, \
-    AnexoAtendimento, EncaminhamentosCondutas, Unidade
+    AnexoAtendimento, EncaminhamentosCondutas, Unidade, SituacaoAtendimento
 from slth import forms
 from ..mail import send_mail
 
@@ -332,7 +332,23 @@ class AnexarArquivo(endpoints.ChildEndpoint):
                 or self.source.especialista and self.request.user.username == self.source.especialista.pessoa_fisica.cpf
             )
         )
+
+
+class CancelarAtendimento(endpoints.ChildEndpoint):
+    class Meta:
+        icon = 'x'
+        verbose_name = 'Cancelar Atendimento'
+
+    def get(self):
+        return self.formfactory(self.source).fields('motivo_cancelamento')
     
+    def post(self):
+        self.source.cancelar()
+        return super().post()
+    
+    def check_permission(self):
+        return self.source.situacao_id == SituacaoAtendimento.AGENDADO and self.request.user.username == self.source.profissional.pessoa_fisica.cpf
+
 
 class FinalizarAtendimento(endpoints.ChildEndpoint):
     tipo_assinatura = forms.ChoiceField(label='Forma de autorização da assinatura digital', choices=[['QrCode', 'QrCode'], ['Notificação', 'Notificação']], pick=True)
