@@ -874,7 +874,7 @@ class Atendimento(models.Model):
 
     situacao = models.ForeignKey(SituacaoAtendimento, verbose_name='Situação', on_delete=models.CASCADE, null=True)
     motivo_cancelamento = models.TextField(verbose_name='Motivo do Cancelamento', null=True)
-    motivo_reagendamento = models.TextField(verbose_name='Motivo do Cancelamento', null=True)
+    motivo_reagendamento = models.TextField(verbose_name='Motivo do Reagendamento', null=True)
 
     token = models.CharField(verbose_name='Token', null=True, blank=True)
 

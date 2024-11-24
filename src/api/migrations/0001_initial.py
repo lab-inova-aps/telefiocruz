@@ -41,7 +41,7 @@ class Migration(migrations.Migration):
                 ('agendado_para', models.DateTimeField(blank=True, null=True, verbose_name='Data de Início')),
                 ('finalizado_em', models.DateTimeField(blank=True, null=True, verbose_name='Data de Término')),
                 ('motivo_cancelamento', slth.db.models.TextField(null=True, verbose_name='Motivo do Cancelamento')),
-                ('motivo_reagendamento', slth.db.models.TextField(null=True, verbose_name='Motivo do Cancelamento')),
+                ('motivo_reagendamento', slth.db.models.TextField(null=True, verbose_name='Motivo do Reagendamento')),
                 ('numero_webconf', slth.db.models.CharField(max_length=255, null=True, verbose_name='Número da WebConf')),
                 ('senha_webconf', slth.db.models.CharField(max_length=255, null=True, verbose_name='Senha da WebConf')),
                 ('limite_webconf', models.DateTimeField(null=True, verbose_name='Limite da WebConf')),
