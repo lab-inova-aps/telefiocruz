@@ -18,7 +18,7 @@
     {% endif %}
     dou expressa e plena autorização ao médico assistente <b>{{ atendimento.profissional.pessoa_fisica.nome }}</b> inscrito no <b>{{ atendimento.profissional.conselho_profissional }}</b> sob o nº <b>{{ atendimento.profissional.registro_profissional }}</b>,
     {% if atendimento.especialista_id %}
-        e ao especialista <b>{{ atendimento.especialista.pessoa_fisica.nome }}</b> inscrito no CRM sob o nº <b>{{ atendimento.profissional.registro_profissional }}</b> e RQE sob o nº <b>{{ atendimento.profissional.registro_especialista }}</b>,
+        e ao especialista <b>{{ atendimento.especialista.pessoa_fisica.nome }}</b> inscrito no CRM sob o nº <b>{{ atendimento.profissional.registro_profissional }}</b>{% if atendimento.profissional.registro_especialista%} e RQE sob o nº <b>{{ atendimento.profissional.registro_especialista }}</b>{% endif %},
     {% endif %}
     para realizar o atendimento de {{ atendimento.tipo|lower }} e declaro que:
 </p>

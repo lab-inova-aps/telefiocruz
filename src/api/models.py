@@ -4,6 +4,7 @@ import base64
 from uuid import uuid1
 from PIL import Image as PILImage
 import requests
+from slth.models import Email
 from django.conf import settings
 from .signer import VidaasPdfSigner
 from datetime import date, datetime, timedelta, time
@@ -233,7 +234,7 @@ class PessoaFisica(models.Model):
     data_nascimento = models.DateField(verbose_name='Data de Nascimento', null=True)
     cns = models.CharField(verbose_name='CNS', max_length=15, null=True, blank=True)
 
-    sexo = models.ForeignKey(Sexo, verbose_name='Sexo', null=True, on_delete=models.PROTECT, blank=True, pick=True)
+    sexo = models.ForeignKey(Sexo, verbose_name='Sexo', null=True, on_delete=models.PROTECT, pick=True)
 
     nome_responsavel = models.CharField(verbose_name='Nome do Responsável', max_length=80, null=True, blank=True)
     cpf_responsavel = models.CharField(verbose_name='CPF do Responsável', max_length=14, null=True, blank=True)
@@ -542,7 +543,7 @@ class ProfissionalSaude(models.Model):
     def get_horarios_ocupados(self):
         horarios_ocupados = {}
         midnight = datetime.combine(datetime.now().date(), time())
-        qs_teleconsultor = HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=self.pessoa_fisica, atendimentos_profissional_saude__situacao__in=[SituacaoAtendimento.AGENDADO, SituacaoAtendimento.CONFIRMADO])
+        qs_teleconsultor = HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=self.pessoa_fisica, atendimentos_profissional_saude__situacao=SituacaoAtendimento.AGENDADO)
         qs_teleconsultor.filter(atendimentos_profissional_saude__motivo_cancelamento__isnull=False)
         qs_teleconsultor = qs_teleconsultor.values_list('data_hora', 'atendimentos_profissional_saude').order_by('-data_hora')
         for data_hora, pk in qs_teleconsultor:
@@ -593,9 +594,8 @@ class ProfissionalSaude(models.Model):
         )
 
     def __str__(self):
-        return "%s (CPF: %s / CRM: %s)" % (
+        return "%s (CRM: %s)" % (
             self.pessoa_fisica.nome,
-            self.pessoa_fisica.cpf,
             self.get_registro_profissional(),
         )
 
@@ -786,14 +786,12 @@ class AtendimentoQuerySet(models.QuerySet):
     def agenda(self, profissional=None, especialista=None, is_teleconsulta=False, is_proprio_profissional=False):
         selectable = []
         scheduled = {}
-        midnight = datetime.combine(datetime.now().date(), time())
         if profissional:
-            horarios = profissional.horarioprofissionalsaude_set.filter(data_hora__gte=datetime.now())
+            # exibir os horários ocupados
+            for pk, data_hora in profissional.get_horarios_ocupados().items():
+                scheduled[data_hora] = pk
             # agenda ocupada do profissional de saúde
             if is_proprio_profissional:
-                # informar os horários ocupados
-                for pk, data_hora in profissional.get_horarios_ocupados().items():
-                    scheduled[data_hora] = pk
                 if especialista:
                     # pode agendar uma teleconsulta em qualquer horário disponível do especialista
                     selectable = especialista.get_horarios_disponiveis()
@@ -801,17 +799,13 @@ class AtendimentoQuerySet(models.QuerySet):
                 else:
                     selectable = None
             else:
-                # agenda ocupada do especialista
+                selectable = profissional.get_horarios_disponiveis()
                 if especialista:
-                    for data_hora, pk in HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=especialista.pessoa_fisica, atendimentos_profissional_saude__isnull=False).values_list('data_hora', 'atendimentos_profissional_saude').order_by('-data_hora'):
-                        scheduled[data_hora] = pk
-                    for data_hora, pk in HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=especialista.pessoa_fisica, atendimentos_especialista__isnull=False).values_list('data_hora', 'atendimentos_especialista').order_by('-data_hora'):
+                    # exibir os horários ocupados do especialista
+                    for pk, data_hora in especialista.get_horarios_ocupados().items():
                         scheduled[data_hora] = pk
                     # cruzando os horários de atendimento do profissional de saúde com os do especialista
-                    horarios_especialista = especialista.horarioprofissionalsaude_set.filter(data_hora__gte=datetime.now())
-                    horarios = horarios.filter(data_hora__in=horarios_especialista.values_list('data_hora', flat=True))
-        
-            
+                    selectable = selectable.filter(data_hora__in=especialista.get_horarios_disponiveis())
         scheduler = Scheduler(
             chucks=3,
             watch=['profissional', 'especialista'],
@@ -884,6 +878,31 @@ class Atendimento(models.Model):
         icon = "laptop-file"
         verbose_name = "Atendimento"
         verbose_name_plural = "Atendimentos"
+
+    def get_emails_envolvidos(self):
+        emails = []
+        if self.paciente.email:
+            emails.append(self.paciente.email)
+        if self.profissional.pessoa_fisica.email:
+            emails.append(self.profissional.pessoa_fisica.email)
+        if self.especialista and self.especialista.pessoa_fisica.email:
+            emails.append(self.especialista.pessoa_fisica.email)
+        return emails
+    
+    def enviar_notificacao(self, mensagem=None):
+        for to in self.get_emails_envolvidos():
+            subject = "Telefiocruz - Notificação de Atendimento"
+            content = "<p>Notificação referente ao atendimento <b>Nº {}</b>: {}</p>".format(self.get_numero()['label'], mensagem or "")
+            content += "<p><b>Data/Hora</b>: {}</p>".format(self.agendado_para.strftime('%d/%m/%Y %H:%M'))
+            content += "<p><b>Especialidade</b>: {}</p>".format(self.especialidade)
+            content += "<p><b>Profissional Responsável</b>: {}</p>".format(self.profissional)
+            if self.especialista:
+                content += "<p><b>Especialista</b>: {}</p>".format(self.especialista)
+                url = self.get_url_interna()
+                if to == self.paciente.email or 1:
+                    url = self.get_url_externa()
+            email = Email(to=to, subject=subject, content=content, action="Acessar", url=url)
+            email.send()
 
     def formfactory(self):
         return (
@@ -1030,6 +1049,10 @@ class Atendimento(models.Model):
     def get_url_externa(self):
         return '{}/app/atendimento/publico/?token={}'.format(settings.SITE_URL, self.token)
     
+    @meta('URL Externa')
+    def get_url_interna(self):
+        return '{}/app/salavirtual/{}/'.format(settings.SITE_URL, self.pk)
+    
     def get_qrcode_link_webconf(self):
         return qrcode_base64(self.get_url_externa())
 
@@ -1037,6 +1060,8 @@ class Atendimento(models.Model):
         return "%s - %s" % (self.id, self.assunto)
 
     def save(self, *args, **kwargs):
+        if self.pk is None:
+            self.enviar_notificacao(mensagem="Leia atentamente as informações abaixo e acesse o link abaixo no dia/hora marcados.")
         if self.token is None:
             self.token = uuid1().hex
         if self.data is None:

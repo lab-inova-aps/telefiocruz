@@ -23,6 +23,16 @@ MENSAGEM_ASSINATURA_DIGITAL = '''
 '''
 
 
+class RecuperarSenha(endpoints.PublicEndpoint):
+    cpf = forms.CharField(label='CPF')
+
+    class Meta:
+        verbose_name = 'Recuperar Senha'
+
+    def get(self):
+        return self.formfactory().fields('cpf').info('Uma senha randômica será enviada para o e-mail vinculado ao CPF informado. Ela poderá ser alterada pelo usuário após o acesso ao sistema.')
+
+
 class SalaEspera(endpoints.PublicEndpoint):
     class Meta:
         verbose_name = 'Sala de Espera'

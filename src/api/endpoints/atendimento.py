@@ -1,6 +1,7 @@
 from datetime import datetime
 from slth import endpoints
 from slth import tests
+from django.forms.widgets import Textarea
 from ..models import Atendimento, Nucleo, TipoAtendimento, ProfissionalSaude, TipoExame, Medicamento, PessoaFisica, \
     AnexoAtendimento, EncaminhamentosCondutas, Unidade, SituacaoAtendimento
 from slth import forms
@@ -33,7 +34,21 @@ class Add(endpoints.AddEndpoint[Atendimento]):
             form.fields['unidade'].pick = True
         form.fields['profissional'].pick = True
         return form
-    
+        
+    def on_tipo_change(self, controller, values):
+        tipo = values.get('tipo')
+        unidades = self.get_unidade_queryset(Unidade.objects, values)
+        controller.reload('especialidade', 'profissional', 'especialista', 'agendado_para')
+        if tipo and tipo.nome == 'Teleconsulta':
+            controller.hide('especialista')
+            if self.check_role('o'):
+                controller.hide('unidade')
+            else:
+                if unidades.exists(): controller.show('unidade')
+        else:
+            controller.show('especialista')
+            if unidades.exists(): controller.show('unidade')
+        
     def get_unidade_queryset(self, queryset, values):
         if self.check_role('o'):
             qs = queryset.none()
@@ -56,16 +71,6 @@ class Add(endpoints.AddEndpoint[Atendimento]):
                 else:
                     return queryset
         return queryset.none()
-        
-    def on_tipo_change(self, controller, values):
-        tipo = values.get('tipo')
-        if self.get_unidade_queryset(Unidade.objects, values).exists():
-            controller.show('unidade')
-        controller.reload('especialidade', 'profissional', 'especialista', 'agendado_para')
-        if tipo and tipo.nome != 'Teleconsulta':
-            controller.show('especialista')
-        else:
-            controller.hide('especialista')
     
     def on_especialidade_change(self, controller, values):
         controller.reload('profissional', 'especialista', 'agendado_para')
@@ -75,14 +80,15 @@ class Add(endpoints.AddEndpoint[Atendimento]):
         tipo = values.get('tipo')
         unidade = values.get('unidade')
         especialidade = values.get('especialidade')
+        if self.check_role('ps'):
+            queryset = queryset.filter(pessoa_fisica__cpf=self.request.user.username)
+        else:
+            queryset = queryset.filter(unidade=unidade) if unidade else queryset.none()
         if especialidade and tipo:
-            queryset = queryset.filter(unidade=unidade) if unidade else queryset
             if tipo.id == TipoAtendimento.TELECONSULTA:
                 queryset = queryset.filter(especialidade=especialidade)
-            if self.check_role('ps'):
-                queryset = queryset.filter(pessoa_fisica__cpf=self.request.user.username)
             return queryset
-        return queryset.none()
+        return queryset
     
     def get_especialista_queryset(self, queryset, values):
         tipo = values.get('tipo')
@@ -150,42 +156,6 @@ class Agenda(endpoints.QuerySetEndpoint[Atendimento]):
     def check_permission(self):
         return self.request.user.is_authenticated
 
-
-class EnviarNotificacao(endpoints.ChildEndpoint):
-
-    class Meta:
-        icon = "mail-bulk"
-        verbose_name = 'Enviar Notificações'
-
-    def get(self):
-        return super().formfactory().fields()
-    
-    def post(self):
-        usernames = []
-        usernames.append(self.source.paciente.cpf)
-        usernames.append(self.source.profissional.pessoa_fisica.cpf)
-        if self.source.especialista_id:
-            usernames.append(self.source.especialista.pessoa_fisica.cpf)
-        title = 'Lembrete de tele-atendimento'
-        message = 'Você possui um tele-atendimento agendado para {}.'.format(self.source.agendado_para.strftime('%d/%m/%Y as %H:%M'))
-        url = f'/app/atendimento/view/{self.source.pk}/'
-        for user in self.objects('slth.user').filter(username__in=usernames):
-            0 and user.send_push_notification(title, message, url=url)
-        
-        url = self.absolute_url(url)
-        text = '{} Para acessar, clique em {}.'.format(message, url)
-        html = '{} Para acessar, clique em <a href="{}">{}</a>.'.format(message, url, url)
-        if self.source.paciente.email:
-            send_mail([self.source.paciente.email], title, text, html)
-        if self.source.profissional.pessoa_fisica.email:
-            send_mail([self.source.profissional.pessoa_fisica.email], title, text, html)
-        if self.source.especialista_id and self.source.especialista.pessoa_fisica.email:
-            send_mail([self.source.especialista.pessoa_fisica.email], title, text, html)
-        return super().post()
-    
-    def check_permission(self):
-        return self.request.user.is_superuser
-    
 
 class HorariosDisponiveis(endpoints.PublicEndpoint):
     class Meta:
@@ -391,6 +361,27 @@ class Publico(endpoints.PublicEndpoint):
    
     def post(self):
         atendimento = Atendimento.objects.get(token=self.request.GET.get('token'))
+        if atendimento.finalizado_em:
+            raise endpoints.ValidationError('Atendimento finalizado.')
         if not atendimento.get_anexos().filter(nome='Termo de Consentimento').exists():
             atendimento.criar_anexo('Termo de Consentimento', 'documentos/termo.html', atendimento.paciente.cpf, {})
         self.redirect('/api/salaespera/?token={}'.format(self.request.GET.get('token')))
+
+
+class EnviarNotificacao(endpoints.ChildEndpoint):
+    mensagem = forms.CharField(label='Mensagem', widget=Textarea())
+
+    class Meta:
+        modal = True
+        icon = 'mail-bulk'
+        verbose_name = 'Enviar Notificação'
+
+    def get(self):
+        return self.formfactory().fields("mensagem")
+    
+    def post(self):
+        self.source.enviar_notificacao(self.cleaned_data['mensagem'])
+        return super().post()
+    
+    def check_permission(self):
+        return self.request.user.is_superuser

@@ -128,12 +128,25 @@ class Vinculos(endpoints.ListEndpoint[ProfissionalSaude]):
         verbose_name= 'Meus Vínculos'
     
     def get(self):
-        vinculos = super().get().search().filters().filter(pessoa_fisica__cpf=self.request.user).fields('get_estabelecimento', 'especialidade').actions("profissionalsaude.alteraragenda")
+        vinculos = super().get().search().filters().filter(pessoa_fisica__cpf=self.request.user).fields('get_estabelecimento', 'especialidade').actions("profissionalsaude.alteraragenda", "profissionalsaude.horariosatendimento")
         vinculos.metadata['search'].clear()
         return vinculos
 
     def check_permission(self):
         return self.check_role('ps', superuser=False)
+
+
+class HorariosAtendimento(endpoints.ViewEndpoint[ProfissionalSaude]):
+    class Meta:
+        modal = True
+        icon = "user-clock"
+        verbose_name = 'Horários de Atendimento'
+
+    def get(self):
+        return self.instance.get_horarios_atendimento()
+
+    def check_permission(self):
+        return True
 
 
 class MinhaAgenda(endpoints.Endpoint):
