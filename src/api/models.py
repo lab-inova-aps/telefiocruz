@@ -898,9 +898,9 @@ class Atendimento(models.Model):
             content += "<p><b>Profissional Responsável</b>: {}</p>".format(self.profissional)
             if self.especialista:
                 content += "<p><b>Especialista</b>: {}</p>".format(self.especialista)
-                url = self.get_url_interna()
-                if to == self.paciente.email or 1:
-                    url = self.get_url_externa()
+            url = self.get_url_interna()
+            if to == self.paciente.email:
+                url = self.get_url_externa()
             email = Email(to=to, subject=subject, content=content, action="Acessar", url=url)
             email.send()
 
