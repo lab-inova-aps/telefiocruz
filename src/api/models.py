@@ -1061,7 +1061,7 @@ class Atendimento(models.Model):
 
     def save(self, *args, **kwargs):
         if self.pk is None:
-            self.enviar_notificacao(mensagem="Leia atentamente as informações abaixo e acesse o link abaixo no dia/hora marcados.")
+            self.enviar_notificacao(mensagem="Leia atentamente as informações abaixo e acesse o link no dia/hora marcados.")
         if self.token is None:
             self.token = uuid1().hex
         if self.data is None:
