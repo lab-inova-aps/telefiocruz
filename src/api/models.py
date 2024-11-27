@@ -933,13 +933,13 @@ class Atendimento(models.Model):
             super()
             .serializer()
             .fields('get_tags')
-            .actions('atendimento.enviarnotificacao', 'atendimento.anexararquivo', 'salavirtual', 'atendimento.registrarecanminhamentoscondutas', 'atendimento.emitiratestado', 'atendimento.solicitarexames', 'atendimento.prescrevermedicamento', 'atendimento.finalizaratendimento', 'atendimento.cancelaratendimento')
+            .actions('atendimento.enviarnotificacao', 'atendimento.anexararquivo', 'salavirtual', 'atendimento.emitiratestado', 'atendimento.solicitarexames', 'atendimento.prescrevermedicamento', 'atendimento.registrarecanminhamentoscondutas', 'atendimento.finalizaratendimento', 'atendimento.cancelaratendimento')
             .fieldset(
                 "Dados Gerais",
                 (
                     ("id", "tipo", "unidade", "unidade__municipio"),
                     ("agendado_para", "get_duracao_prevista", "iniciado_em", "finalizado_em"),
-                    "get_url_externa", ("motivo_cancelamento", "motivo_reagendamento")
+                    "get_url_externa"
                 ) 
             )
             .group()
@@ -970,6 +970,7 @@ class Atendimento(models.Model):
                         ), attr="especialista", condition='especialista'
                     )
                     .queryset('Anexos', 'get_anexos')
+                    .fieldset('Outras Informações', ("motivo_cancelamento", "motivo_reagendamento"))
                 .parent()
                 .queryset('Encaminhamentos', 'get_condutas_ecaminhamentos', roles=('ps',))
             .parent()
@@ -1085,13 +1086,9 @@ class Atendimento(models.Model):
   
     def criar_anexo(self, nome, template, cpf, dados):
         AnexoAtendimento.objects.filter(atendimento=self, nome=nome).delete()
-        signature = printer.Signature(date=datetime.now(), validation_url='https://validar.iti.gov.br/')
-        signature.add_signer('{} - {}'.format(self.profissional.pessoa_fisica.nome, self.profissional.get_registro_profissional()), None)
         autor = PessoaFisica.objects.get(cpf=cpf)
         anexo = AnexoAtendimento(atendimento=self, autor=autor, nome=nome)
         dados.update(atendimento=self, data_hora=date.today(), logo=f'{settings.SITE_URL}/static/images/icon-black.svg')
-        
-        
         writter = PdfWriter()
         writter.render(template, dados)
         anexo.arquivo.save('{}.pdf'.format(uuid1().hex), ContentFile(writter.pdf.output()))
@@ -1104,7 +1101,8 @@ class Atendimento(models.Model):
     def finalizar(self, authorization_code=None):
         self.situacao_id = SituacaoAtendimento.FINALIZADO
         self.save()
-        cpf = '04770402414' or self.profissional.pessoa_fisica.cpf.replace('.', '').replace('-', '')
+        cpf = self.profissional.pessoa_fisica.cpf.replace('.', '').replace('-', '')
+        # cpf = '04770402414'
         for anexo in self.anexoatendimento_set.all():
             signer = VidaasPdfSigner(anexo.arquivo.path, f'{self.profissional.pessoa_fisica.nome}:{cpf}')
             if authorization_code:

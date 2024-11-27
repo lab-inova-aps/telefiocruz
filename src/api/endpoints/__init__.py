@@ -220,7 +220,8 @@ class AssinarViaQrCode(endpoints.InstanceEndpoint[Atendimento]):
     def get(self):
         if RUNNING_TESTING:
             self.redirect(f'/api/atendimento/view/{self.instance.pk}/')
-        cpf = '04770402414' or self.request.user.username.replace('.', '').replace('-', '')
+        cpf = self.request.user.username.replace('.', '').replace('-', '')
+        # cpf = '04770402414'
         authorization_code = self.request.GET.get('code')
         if authorization_code is None:
             code_verifier = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstwcM'

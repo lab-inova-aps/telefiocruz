@@ -64,20 +64,22 @@
 <p><br></p>
 <table width="100%">
     <tr>
-        <td><b>Motivo:</b></td>
-        <td>{{ atendimento.assunto }}</td>
         <td><b>Especialidade:</b></td>
         <td>{{ atendimento.especialidade }}</td>
     </tr>
+    </tr>
+    <tr>
+        <td><b>Motivo:</b></td>
+        <td>{{ atendimento.assunto }}</td>
     <tr>
         <td><b>Dúvida/Queixa:</b></td>
         <td colspan="3">{{ atendimento.duvida }}</td>
     </tr>
     <tr>
         <td><b>CID:</b></td>
-        <td>{% for cid in atendimento.cid.all %}{{ cid.codigo }}{% endfor %}</td>
+        <td>{% for cid in atendimento.cid.all %}{% if not forloop.first %}, {% endif %}{{ cid.codigo }}{% endfor %}</td>
         <td><b>CIAP:</b></td>
-        <td>{% for ciap in atendimento.ciap.all %}{{ ciap.codigo }}{% endfor %}</td>
+        <td>{% for ciap in atendimento.ciap.all %}{% if not forloop.first %}, {% endif %}{{ ciap.codigo }}{% endfor %}</td>
     </tr>
 </table>
 {% if atendimento.especialista %}
@@ -97,9 +99,16 @@
     </table>
 {% endif %}
 
-{% if atendimento.get_condutas_ecaminhamentos.exists %}
-<p align="center"><b>CONDUTA E ENCAMINHAMENTOS</b></p>
-    {% for encaminhamento in atendimento.get_condutas_ecaminhamentos.all %}
+
+
+{% for encaminhamento in atendimento.get_condutas_ecaminhamentos.all %}
+    <p align="center">
+        <b>CONDUTA E ENCAMINHAMENTOS</b>
+        <br>
+        {{ encaminhamento.responsavel }}
+    </p>
+    <p align="center">&nbsp;</p>
+    </br>
     <table>
         <tr>
             <td><b>S - subjetivo:</b></td>
@@ -118,8 +127,7 @@
             <td colspan="3">{{ encaminhamento.plano }}</td>
         </tr>
     </table>
-    {% endfor %}
-{% endif %}
+{% endfor %}
 
 <br><br><br><br>
 <p align="right">

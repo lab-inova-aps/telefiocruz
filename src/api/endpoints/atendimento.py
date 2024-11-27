@@ -3,7 +3,7 @@ from slth import endpoints
 from slth import tests
 from django.forms.widgets import Textarea
 from ..models import Atendimento, Nucleo, TipoAtendimento, ProfissionalSaude, TipoExame, Medicamento, PessoaFisica, \
-    AnexoAtendimento, EncaminhamentosCondutas, Unidade, SituacaoAtendimento
+    AnexoAtendimento, EncaminhamentosCondutas, Unidade, SituacaoAtendimento, CID, CIAP
 from slth import forms
 from ..mail import send_mail
 
@@ -248,6 +248,8 @@ class PrescreverMedicamento(endpoints.InstanceEndpoint[Atendimento]):
 
 
 class RegistrarEcanminhamentosCondutas(endpoints.ChildEndpoint):
+    cid = forms.ModelMultipleChoiceField(CID.objects.all(), label='CID')
+    ciap = forms.ModelMultipleChoiceField(CIAP.objects.all(), label='CIAP')
 
     class Meta:
         icon = 'file-signature'
@@ -266,6 +268,8 @@ class RegistrarEcanminhamentosCondutas(endpoints.ChildEndpoint):
             )
         return (
             self.formfactory(instance)
+            .initial(cid=self.source.cid.all(), ciap=self.source.ciap.all())
+            .fieldset('Dados Gerais', (('cid', 'ciap'),))
             .fieldset('Método SOAP', ('subjetivo', 'objetivo', 'avaliacao', 'plano'))
             .fieldset('Outras Informações', ('comentario',))# 'encaminhamento', 'conduta'
         )
@@ -273,8 +277,10 @@ class RegistrarEcanminhamentosCondutas(endpoints.ChildEndpoint):
     def post(self):
         if self.source.iniciado_em is None:
             self.source.iniciado_em = datetime.now()
-        self.source.finalizado_em = datetime.now()
+        # self.source.finalizado_em = datetime.now()
         self.source.save()
+        self.source.cid.set(self.cleaned_data['cid'])
+        self.source.ciap.set(self.cleaned_data['ciap'])
         self.source.criar_anexo('Atendimento', 'documentos/atendimento.html', self.source.profissional.pessoa_fisica.cpf, {})
         self.redirect(f'/api/atendimento/view/{self.source.id}/')
 
@@ -321,7 +327,7 @@ class CancelarAtendimento(endpoints.ChildEndpoint):
 
 
 class FinalizarAtendimento(endpoints.ChildEndpoint):
-    tipo_assinatura = forms.ChoiceField(label='Forma de autorização da assinatura digital', choices=[['QrCode', 'QrCode'], ['Notificação', 'Notificação']], pick=True)
+    tipo_assinatura = forms.ChoiceField(label='Forma de autorização da assinatura digital', choices=[['QrCode', 'QrCode'], ['Notificação', 'Notificação']], pick=True, required=False)
 
     class Meta:
         icon = 'check'
@@ -335,14 +341,15 @@ class FinalizarAtendimento(endpoints.ChildEndpoint):
         tipo_assinatura = self.cleaned_data['tipo_assinatura']
         if tipo_assinatura == 'QrCode':
             self.redirect(f'/api/assinarviaqrcode/{self.source.id}/')
-        else:
+        elif tipo_assinatura == 'Notificação':
             if tests.RUNNING_TESTING:
                 self.redirect(f'/api/atendimento/view/{self.source.id}/')
             else:
                 self.source.finalizar()
                 self.redirect(f'/api/atendimento/view/{self.source.id}/')
-                #raise endpoints.ValidationError('Não foi possível realizar a assinatura do documento. Tente outra vez!')
-
+        else:
+            self.source.finalizar()
+            self.redirect(f'/api/atendimento/view/{self.source.id}/')
 
     def check_permission(self):
         return self.request.user.username == self.source.profissional.pessoa_fisica.cpf and self.source.encaminhamentoscondutas_set.filter(responsavel__pessoa_fisica__cpf=self.request.user.username).exists()
