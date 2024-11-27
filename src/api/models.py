@@ -594,7 +594,7 @@ class ProfissionalSaude(models.Model):
         )
 
     def __str__(self):
-        return "%s (CRM: %s)" % (
+        return "%s (%s)" % (
             self.pessoa_fisica.nome,
             self.get_registro_profissional(),
         )

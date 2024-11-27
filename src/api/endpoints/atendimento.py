@@ -255,6 +255,12 @@ class RegistrarEcanminhamentosCondutas(endpoints.ChildEndpoint):
         icon = 'file-signature'
         verbose_name = 'Registrar Encaminhamento'
 
+    def getform(self, form):
+        if 'cid' in form.fields:
+            form.fields['cid'].initial = self.source.cid.all()
+            form.fields['ciap'].initial = self.source.ciap.all()
+        return form
+
     def get(self):
         responsavel = ProfissionalSaude.objects.get(
             pessoa_fisica__cpf=self.request.user.username
