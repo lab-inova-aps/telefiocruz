@@ -1103,12 +1103,12 @@ class Atendimento(models.Model):
         self.save()
         cpf = self.profissional.pessoa_fisica.cpf.replace('.', '').replace('-', '')
         # cpf = '04770402414'
-        for anexo in self.anexoatendimento_set.all():
-            signer = VidaasPdfSigner(anexo.arquivo.path, f'{self.profissional.pessoa_fisica.nome}:{cpf}')
-            if authorization_code:
+        if authorization_code:
+            for anexo in self.anexoatendimento_set.all():
+                signer = VidaasPdfSigner(anexo.arquivo.path, f'{self.profissional.pessoa_fisica.nome}:{cpf}')
                 signer.authorize(authorization_code)
-            signer.sign(anexo.arquivo.path)
-            anexo.checar_assinaturas()
+                signer.sign(anexo.arquivo.path)
+                anexo.checar_assinaturas()
 
 
 class AnexoAtendimento(models.Model):
