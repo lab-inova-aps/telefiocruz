@@ -358,7 +358,7 @@ class FinalizarAtendimento(endpoints.ChildEndpoint):
             self.redirect(f'/api/atendimento/view/{self.source.id}/')
 
     def check_permission(self):
-        return self.request.user.username == self.source.profissional.pessoa_fisica.cpf and self.source.encaminhamentoscondutas_set.filter(responsavel__pessoa_fisica__cpf=self.request.user.username).exists()
+        return self.source.finalizado_em is None and self.request.user.username == self.source.profissional.pessoa_fisica.cpf and self.source.encaminhamentoscondutas_set.filter(responsavel__pessoa_fisica__cpf=self.request.user.username).exists()
 
 
 class Publico(endpoints.PublicEndpoint):
