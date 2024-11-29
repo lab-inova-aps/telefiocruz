@@ -247,9 +247,9 @@ class PrescreverMedicamento(endpoints.InstanceEndpoint[Atendimento]):
         return self.instance.finalizado_em is None and self.check_role('ps')
 
 
-class RegistrarEcanminhamentosCondutas(endpoints.ChildEndpoint):
-    cid = forms.ModelMultipleChoiceField(CID.objects.all(), label='CID')
-    ciap = forms.ModelMultipleChoiceField(CIAP.objects.all(), label='CIAP')
+class RegistrarEcanminhamentosCondutas(endpoints.InstanceEndpoint[Atendimento]):
+    cid = forms.ModelMultipleChoiceField(CID.objects.all(), label='CID', required=False)
+    ciap = forms.ModelMultipleChoiceField(CIAP.objects.all(), label='CIAP', required=False)
 
     class Meta:
         icon = 'file-signature'
@@ -257,8 +257,8 @@ class RegistrarEcanminhamentosCondutas(endpoints.ChildEndpoint):
 
     def getform(self, form):
         if 'cid' in form.fields:
-            form.fields['cid'].initial = self.source.cid.all()
-            form.fields['ciap'].initial = self.source.ciap.all()
+            form.fields['cid'].initial = self.instance.cid.all()
+            form.fields['ciap'].initial = self.instance.ciap.all()
         return form
 
     def get(self):
@@ -266,32 +266,33 @@ class RegistrarEcanminhamentosCondutas(endpoints.ChildEndpoint):
             pessoa_fisica__cpf=self.request.user.username
         )
         instance = EncaminhamentosCondutas.objects.filter(
-            atendimento=self.source, responsavel=responsavel
+            atendimento=self.instance, responsavel=responsavel
         ).first()
         if instance is None:
             instance = EncaminhamentosCondutas(
-                atendimento=self.source, responsavel=responsavel
+                atendimento=self.instance, responsavel=responsavel
             )
         return (
-            self.formfactory(instance)
-            .initial(cid=self.source.cid.all(), ciap=self.source.ciap.all())
+            self.formfactory(instance).autosubmit(30)
+            .initial(cid=self.instance.cid.all(), ciap=self.instance.ciap.all())
             .fieldset('Dados Gerais', (('cid', 'ciap'),))
             .fieldset('Método SOAP', ('subjetivo', 'objetivo', 'avaliacao', 'plano'))
             .fieldset('Outras Informações', ('comentario',))# 'encaminhamento', 'conduta'
         )
     
     def post(self):
-        if self.source.iniciado_em is None:
-            self.source.iniciado_em = datetime.now()
+        if self.instance.iniciado_em is None:
+            self.instance.iniciado_em = datetime.now()
         # self.source.finalizado_em = datetime.now()
-        self.source.save()
-        self.source.cid.set(self.cleaned_data['cid'])
-        self.source.ciap.set(self.cleaned_data['ciap'])
-        self.source.criar_anexo('Atendimento', 'documentos/atendimento.html', self.source.profissional.pessoa_fisica.cpf, {})
-        self.redirect(f'/api/atendimento/view/{self.source.id}/')
+        self.instance.save()
+        self.instance.cid.set(self.cleaned_data['cid'])
+        self.instance.ciap.set(self.cleaned_data['ciap'])
+        if self.request.GET.get('autosubmit') is None:
+            self.instance.criar_anexo('Atendimento', 'documentos/atendimento.html', self.instance.profissional.pessoa_fisica.cpf, {})
+        self.redirect(f'/api/atendimento/view/{self.instance.id}/')
 
     def check_permission(self):
-        return self.source.finalizado_em is None and self.check_role('ps')
+        return self.instance.finalizado_em is None and self.check_role('ps')
 
 
 class AnexarArquivo(endpoints.ChildEndpoint):
