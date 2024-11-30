@@ -159,3 +159,31 @@ class MinhaAgenda(endpoints.Endpoint):
     
     def check_permission(self):
         return self.check_role('ps', superuser=False)
+
+
+class PrimeiroAcesso(endpoints.PublicEndpoint):
+    cpf = forms.CharField(label='CPF')
+    data_nascimento = forms.DateField(label='Data de Nascimento')
+    email = forms.CharField(label='Email')
+
+    class Meta:
+        icon = 'user-md'
+        verbose_name = 'Primeiro Acesso'
+
+    def get(self):
+        texto = 'Será enviada para o e-mail uma nova senha, a qual poderá ser trocada após login no sistema.'
+        return self.formfactory().info(texto).fields(('cpf', 'data_nascimento'), 'email')
+    
+    def post(self):
+        profissional_saude = ProfissionalSaude.objects.filter(
+            pessoa_fisica__cpf=self.cleaned_data['cpf'],
+            pessoa_fisica__data_nascimento=self.cleaned_data['data_nascimento'],
+            pessoa_fisica__email=self.cleaned_data['email']
+        ).first()
+        if profissional_saude is None:
+            raise endpoints.ValidationError("Profissional não cadastrado.")
+        # profissional_saude.enviar_senha_acesso()
+        return super().post()
+    
+    def check_permission(self):
+        return not self.request.user.is_authenticated

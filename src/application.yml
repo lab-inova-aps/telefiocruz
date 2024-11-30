@@ -19,6 +19,7 @@ application:
   index: dashboard
   dashboard:
     toolbar:
+      - profissionalsaude.primeiroacesso
     actions:
     top:
     center:

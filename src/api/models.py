@@ -521,6 +521,18 @@ class ProfissionalSaude(models.Model):
         verbose_name_plural = "Profissionais de Saúde"
         search_fields = 'pessoa_fisica__cpf', 'pessoa_fisica__nome'
 
+    def enviar_senha_acesso(self, mensagem=None):
+        if self.pessoa_fisica.email:
+            senha = uuid1().hex[0:6]
+            user = User.objects.get(username=self.pessoa_fisica.cpf)
+            user.set_password(senha)
+            user.save()
+            subject = "Telefiocruz - Primeiro Acesso"
+            content = "<p>Sua senha de acesso ao sistema é <b>{}</b>.</p>".format(senha)
+            url = settings.SITE_URL
+            email = Email(to=self.pessoa_fisica.email, subject=subject, content=content, action="Acessar", url=url)
+            email.send()
+
     def assinar_arquivo_pdf(self, caminho_arquivo, token):
         url = 'https://certificado.vidaas.com.br/valid/api/v1/trusted-services/signatures'
         filename = caminho_arquivo.split('/')[-1]

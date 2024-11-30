@@ -1,3 +1,4 @@
+import uuid
 import os
 import sys
 """
@@ -205,3 +206,5 @@ else:
     EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
     EMAIL_USE_TLS = bool(os.environ.get('EMAIL_USE_TLS'))
     DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL')
+
+    DEFAULT_PASSWORD = lambda user: uuid.uuid1().hex

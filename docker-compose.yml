@@ -12,8 +12,8 @@ services:
     restart: always
     volumes:
       - ./src:/app
-      # - /Users/breno/Documents/Workspace/slth/src/django/slth:/usr/local/lib/python3.13/site-packages/slth
-      # - /Users/breno/Documents/Workspace/slth/src/django/lib/slthlib:/usr/local/lib/python3.13/site-packages/slthlib
+      #- /Users/breno/Documents/Workspace/slth/src/django/slth:/usr/local/lib/python3.13/site-packages/slth
+      #- /Users/breno/Documents/Workspace/slth/src/django/lib/slthlib:/usr/local/lib/python3.13/site-packages/slthlib
     depends_on:
       postgres:
         condition: service_healthy
