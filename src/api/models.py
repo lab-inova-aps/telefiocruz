@@ -89,7 +89,7 @@ class Area(models.Model):
         verbose_name_plural = "Áreas"
 
     def get_profissonais_saude(self):
-        return ProfissionalSaude.objects.filter(especialidade__area=self).fields('pessoa_fisica', 'nucleo')
+        return ProfissionalSaude.objects.filter(especialidade__area=self).fields('pessoa_fisica', 'get_estabelecimento')
     
     @meta('Qtd. de Profissionais')
     def get_qtd_profissonais_saude(self):

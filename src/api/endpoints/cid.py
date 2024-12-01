@@ -20,4 +20,3 @@ class Edit(endpoints.EditEndpoint[CID]):
 class Delete(endpoints.DeleteEndpoint[CID]):
     def check_permission(self):
         return self.check_role('a')
-
