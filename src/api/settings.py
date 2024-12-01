@@ -116,8 +116,8 @@ USE_TZ = False
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = 'media/'
 SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')
-STATIC_ROOT = 'static'
-STATIC_URL = os.path.join(SITE_URL, 'static/')
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATIC_URL = 'static/'
 ALLOWED_HOSTS = ['selenium', '127.0.0.1', 'localhost', '*']
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 X_FRAME_OPTIONS = 'ALLOWALL'
@@ -208,3 +208,5 @@ else:
     DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL')
 
     # DEFAULT_PASSWORD = lambda user: uuid.uuid1().hex
+
+DEBUG = 'localhost' in SITE_URL
