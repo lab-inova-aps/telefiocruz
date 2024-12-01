@@ -207,6 +207,7 @@ else:
     EMAIL_USE_TLS = bool(os.environ.get('EMAIL_USE_TLS'))
     DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL')
 
-    # DEFAULT_PASSWORD = lambda user: uuid.uuid1().hex
-
 DEBUG = 'localhost' in SITE_URL
+
+if not DEBUG:
+    DEFAULT_PASSWORD = lambda user: uuid.uuid1().hex
