@@ -182,7 +182,7 @@ class PrimeiroAcesso(endpoints.PublicEndpoint):
         ).first()
         if profissional_saude is None:
             raise endpoints.ValidationError("Profissional não cadastrado.")
-        # profissional_saude.enviar_senha_acesso()
+        profissional_saude.enviar_senha_acesso()
         return super().post()
     
     def check_permission(self):
