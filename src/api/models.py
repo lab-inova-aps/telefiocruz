@@ -1073,13 +1073,14 @@ class Atendimento(models.Model):
         return "%s - %s" % (self.id, self.assunto)
 
     def save(self, *args, **kwargs):
-        if self.pk is None:
-            self.enviar_notificacao(mensagem="Leia atentamente as informações abaixo e acesse o link no dia/hora marcados.")
+        pk = self.pk
         if self.token is None:
             self.token = uuid1().hex
         if self.data is None:
             self.data = timezone.now()
         super(Atendimento, self).save(*args, **kwargs)
+        if pk is None:
+            self.enviar_notificacao(mensagem="Leia atentamente as informações abaixo e acesse o link no dia/hora marcados.")
 
     def post_save(self):
         minutos = [0]
