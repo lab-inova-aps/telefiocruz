@@ -607,8 +607,9 @@ class ProfissionalSaude(models.Model):
         )
 
     def __str__(self):
-        return "%s (%s)" % (
+        return "%s / %s / %s" % (
             self.pessoa_fisica.nome,
+            self.especialidade,
             self.get_registro_profissional(),
         )
 

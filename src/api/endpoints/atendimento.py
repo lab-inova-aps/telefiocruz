@@ -60,16 +60,26 @@ class Add(endpoints.AddEndpoint[Atendimento]):
             qs = queryset.none()
         return qs
     
+    def on_unidade_change(self, controller, values):
+        tipo = values.get('tipo')
+        if tipo and tipo.nome == 'Teleconsulta':
+            controller.reload('especialidade')
+    
     def get_especialidade_queryset(self, queryset, values):
         tipo = values.get('tipo')
+        unidade = values.get('unidade')
         if tipo:
             if self.check_role('o'):
                 return queryset
             elif self.check_role('ps'):
+                vinculos = ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username)
                 if tipo.nome == 'Teleconsulta':
-                    return queryset.filter(profissionalsaude__pessoa_fisica__cpf=self.request.user.username)
+                    if unidade:
+                        vinculos = vinculos.filter(unidade=unidade)
+                    return queryset.filter(pk__in=vinculos.values_list('especialidade', flat=True).distinct())
                 else:
-                    return queryset
+                    pks = ProfissionalSaude.objects.filter(nucleo__isnull=False).values_list('especialidade', flat=True).distinct()
+                    return queryset.filter(pk__in=pks)
         return queryset.none()
     
     def on_especialidade_change(self, controller, values):
