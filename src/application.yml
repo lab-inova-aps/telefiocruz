@@ -37,6 +37,7 @@ application:
       - atendimento.atendimentos
       - atendimento.agenda
       - estatistica
+      - profissionalsaude.especialistas
     adder:
     search:
     usermenu:

@@ -39,6 +39,19 @@ class Agenda(endpoints.InstanceEndpoint[ProfissionalSaude]):
         return True
 
 
+class Especialistas(endpoints.Endpoint):
+
+    class Meta:
+        icon = 'stethoscope'
+        verbose_name = 'Especialistas'
+
+    def get(self):
+        return ProfissionalSaude.objects.filter(nucleo__isnull=False).fields('pessoa_fisica__nome', 'registro_profissional', 'especialidade', 'nucleo').actions('profissionalsaude.agenda')
+
+    def check_permission(self):
+        return self.check_role('ps')
+
+
 class AlterarAgenda(endpoints.InstanceEndpoint[ProfissionalSaude]):
 
     class Meta:

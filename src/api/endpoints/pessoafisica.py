@@ -1,6 +1,7 @@
 from slth import endpoints
+from datetime import datetime
 from ..models import PessoaFisica, Atendimento
-from ..utils import buscar_endereco
+from ..utils import buscar_endereco, buscar_pessoafisica
 
 
 class PessoasFisicas(endpoints.ListEndpoint[PessoaFisica]):
@@ -17,6 +18,9 @@ class Add(endpoints.AddEndpoint[PessoaFisica]):
         if dados:
             dados['endereco'] = dados.pop('logradouro')
         controller.set(**dados)
+
+    def on_cpf_change(self, controller, values):
+        controller.set(**buscar_pessoafisica(values.get('cpf')))
 
 
 class Edit(endpoints.EditEndpoint[PessoaFisica]):
