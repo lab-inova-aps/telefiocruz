@@ -131,6 +131,7 @@ class Delete(endpoints.DeleteEndpoint[Atendimento]):
 
 
 class View(endpoints.ViewEndpoint[Atendimento]):
+
     def check_permission(self):
         return self.check_role('g', 'ps', 'o') or self.instance.paciente.cpf == self.request.user.username
 

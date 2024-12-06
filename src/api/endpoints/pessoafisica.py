@@ -21,7 +21,13 @@ class Add(endpoints.AddEndpoint[PessoaFisica]):
 
 class Edit(endpoints.EditEndpoint[PessoaFisica]):
     def check_permission(self):
-        return self.check_role('a')
+        return self.check_role('g', 'o', 'a', 'ps', 'gu')
+    
+    def on_cep_change(self, controller, values):
+        dados = buscar_endereco(values.get('cep'))
+        if dados:
+            dados['endereco'] = dados.pop('logradouro')
+        controller.set(**dados)
 
 
 class Delete(endpoints.DeleteEndpoint[PessoaFisica]):

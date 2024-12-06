@@ -4,7 +4,7 @@ import base64
 from uuid import uuid1
 from PIL import Image as PILImage
 import requests
-from slth.models import Email
+from slth.models import Email, TimeZone
 from django.conf import settings
 from .signer import VidaasPdfSigner
 from datetime import date, datetime, timedelta, time
@@ -121,6 +121,7 @@ class Estado(models.Model):
     codigo = models.CharField(verbose_name='Código IBGE', max_length=2, unique=True)
     sigla = models.CharField(verbose_name='Sigla', max_length=2, unique=True)
     nome = models.CharField(verbose_name='Nome', max_length=60, unique=True)
+    fuso_horario = models.ForeignKey(TimeZone, verbose_name='Fuso Horário', on_delete=models.CASCADE, null=True, blank=True)
 
     objects = EstadoQuerySet()
 
@@ -883,6 +884,8 @@ class Atendimento(models.Model):
     motivo_reagendamento = models.TextField(verbose_name='Motivo do Reagendamento', null=True)
 
     token = models.CharField(verbose_name='Token', null=True, blank=True)
+    
+    emails = models.ManyToManyField(Email, verbose_name='E-mails', blank=True)
 
     objects = AtendimentoQuerySet()
 
@@ -891,30 +894,34 @@ class Atendimento(models.Model):
         verbose_name = "Atendimento"
         verbose_name_plural = "Atendimentos"
 
-    def get_emails_envolvidos(self):
-        emails = []
+    def get_envolvidos(self):
+        envolvidos = []
         if self.paciente.email:
-            emails.append(self.paciente.email)
+            envolvidos.append(self.paciente)
         if self.profissional.pessoa_fisica.email:
-            emails.append(self.profissional.pessoa_fisica.email)
+            envolvidos.append(self.profissional.pessoa_fisica)
         if self.especialista and self.especialista.pessoa_fisica.email:
-            emails.append(self.especialista.pessoa_fisica.email)
-        return emails
+            envolvidos.append(self.especialista.pessoa_fisica)
+        return envolvidos
     
     def enviar_notificacao(self, mensagem=None):
-        for to in self.get_emails_envolvidos():
+        for pessoa_fisica in self.get_envolvidos():
+            data_hora = self.agendado_para
+            fuso_horario = pessoa_fisica.municipio and pessoa_fisica.municipio.estado and pessoa_fisica.municipio.estado.fuso_horario or None
+            if fuso_horario:
+                data_hora = fuso_horario.localtime(data_hora)
             subject = "Telefiocruz - Notificação de Atendimento"
             content = "<p>Notificação referente ao atendimento <b>Nº {}</b>: {}</p>".format(self.get_numero()['label'], mensagem or "")
-            content += "<p><b>Data/Hora</b>: {}</p>".format(self.agendado_para.strftime('%d/%m/%Y %H:%M'))
+            content += "<p><b>Data/Hora</b>: {}</p>".format(data_hora.strftime('%d/%m/%Y %H:%M'))
             content += "<p><b>Especialidade</b>: {}</p>".format(self.especialidade)
             content += "<p><b>Profissional Responsável</b>: {}</p>".format(self.profissional)
             if self.especialista:
                 content += "<p><b>Especialista</b>: {}</p>".format(self.especialista)
             url = self.get_url_interna()
-            if to == self.paciente.email:
+            if pessoa_fisica == self.paciente:
                 url = self.get_url_externa()
-            email = Email(to=to, subject=subject, content=content, action="Acessar", url=url)
-            email.send()
+            email = Email(to=pessoa_fisica.email, subject=subject, content=content, action="Acessar", url=url)
+            #email.send()
 
     def formfactory(self):
         return (
