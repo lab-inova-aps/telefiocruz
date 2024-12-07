@@ -86,7 +86,7 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
     
     def check_permission(self):
         return (
-            self.instance.finalizado_em is None
+            self.instance.is_agendado()
             and (
                 self.check_role('ps')
                 or self.instance.paciente.cpf == self.request.user.username
@@ -102,7 +102,7 @@ class VideoChamada(endpoints.InstanceEndpoint[Atendimento]):
     
     def check_permission(self):
         return (
-            self.instance.finalizado_em is None
+            self.instance.is_agendado()
             and not RUNNING_TESTING
             and (
                 self.request.GET.get('token') == self.instance.token

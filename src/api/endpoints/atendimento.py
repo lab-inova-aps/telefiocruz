@@ -25,57 +25,30 @@ class Add(endpoints.AddEndpoint[Atendimento]):
         verbose_name = 'Cadastrar Atendimento'
 
     def get(self):
-        return super().get().hidden('unidade', 'especialista')
+        return super().get().hidden('especialista')
     
     def getform(self, form):
         form = super().getform(form)
         form.fields['agendado_para'] = forms.SchedulerField(scheduler=Atendimento.objects.agenda())
-        if self.check_role('ps'):
-            form.fields['unidade'].pick = True
         form.fields['profissional'].pick = True
         return form
         
     def on_tipo_change(self, controller, values):
         tipo = values.get('tipo')
-        unidades = self.get_unidade_queryset(Unidade.objects, values)
         controller.reload('especialidade', 'profissional', 'especialista', 'agendado_para')
-        if tipo and tipo.nome == 'Teleconsulta':
+        if tipo and tipo.is_teleconsulta():
             controller.hide('especialista')
-            if self.check_role('o'):
-                controller.hide('unidade')
-            else:
-                if unidades.exists(): controller.show('unidade')
         else:
             controller.show('especialista')
-            if unidades.exists(): controller.show('unidade')
-        
-    def get_unidade_queryset(self, queryset, values):
-        if self.check_role('o'):
-            qs = queryset.none()
-            for nucleo in Nucleo.objects.filter(operadores__cpf=self.request.user.username):
-                qs = qs | nucleo.unidades.all()
-        elif self.check_role('ps'):
-            return queryset.filter(profissionalsaude__pessoa_fisica__cpf=self.request.user.username)
-        else:
-            qs = queryset.none()
-        return qs
-    
-    def on_unidade_change(self, controller, values):
-        tipo = values.get('tipo')
-        if tipo and tipo.nome == 'Teleconsulta':
-            controller.reload('especialidade')
-    
+
     def get_especialidade_queryset(self, queryset, values):
         tipo = values.get('tipo')
-        unidade = values.get('unidade')
         if tipo:
             if self.check_role('o'):
                 return queryset
             elif self.check_role('ps'):
-                vinculos = ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username)
-                if tipo.nome == 'Teleconsulta':
-                    if unidade:
-                        vinculos = vinculos.filter(unidade=unidade)
+                if tipo.is_teleconsulta():
+                    vinculos = ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username)
                     return queryset.filter(pk__in=vinculos.values_list('especialidade', flat=True).distinct())
                 else:
                     pks = ProfissionalSaude.objects.filter(nucleo__isnull=False).values_list('especialidade', flat=True).distinct()
@@ -88,23 +61,18 @@ class Add(endpoints.AddEndpoint[Atendimento]):
 
     def get_profissional_queryset(self, queryset, values):
         tipo = values.get('tipo')
-        unidade = values.get('unidade')
         especialidade = values.get('especialidade')
         if self.check_role('ps'):
             queryset = queryset.filter(pessoa_fisica__cpf=self.request.user.username)
-        else:
-            queryset = queryset.filter(unidade=unidade) if unidade else queryset.none()
-        if especialidade and tipo:
-            if tipo.id == TipoAtendimento.TELECONSULTA:
-                queryset = queryset.filter(especialidade=especialidade)
-            return queryset
+        if especialidade and tipo and tipo.is_teleconsulta():
+            queryset = queryset.filter(especialidade=especialidade)
         return queryset
     
     def get_especialista_queryset(self, queryset, values):
         tipo = values.get('tipo')
         especialidade = values.get('especialidade')
         if tipo and especialidade:
-            if tipo.id == TipoAtendimento.TELE_INTERCONSULTA:
+            if tipo.is_teleinterconsulta():
                 queryset = queryset.filter(nucleo__isnull=False, especialidade=especialidade)
             return queryset
         return queryset.none()
@@ -120,8 +88,7 @@ class Add(endpoints.AddEndpoint[Atendimento]):
         agendado_para = cleaned_data.get('agendado_para')
         profissional = cleaned_data.get('profissional')
         especialista = cleaned_data.get('especialista')
-        cadastrador = ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username).first()
-        if profissional != cadastrador:
+        if profissional and not profissional.is_user(self.request.user):
             if not profissional.pode_realizar_atendimento(agendado_para, duracao):
                 raise endpoints.ValidationError('O horário selecionado é incompatível com a duração informada.')
             if especialista and not especialista.pode_realizar_atendimento(agendado_para, duracao):
@@ -173,11 +140,10 @@ class HorariosDisponiveis(endpoints.PublicEndpoint):
         verbose_name = 'Horários Disponíveis'
 
     def get(self):
-        cadastrador = ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username).first()
         profissional = ProfissionalSaude.objects.filter(pk=self.request.GET.get('profissional')).first()
         especialista = ProfissionalSaude.objects.filter(pk=self.request.GET.get('especialista')).first()
         is_teleconsulta = self.request.GET.get('tipo') == '1'
-        is_proprio_profissional = cadastrador == profissional
+        is_proprio_profissional = profissional and profissional.is_user(self.request.user)
         return Atendimento.objects.agenda(profissional, especialista, is_teleconsulta, is_proprio_profissional)
 
 
@@ -207,7 +173,7 @@ class EmitirAtestado(endpoints.InstanceEndpoint[Atendimento]):
         return super().post()
     
     def check_permission(self):
-        return self.instance.finalizado_em is None and self.check_role('ps')
+        return self.instance.is_agendado() and self.check_role('ps')
 
 
 class SolicitarExames(endpoints.InstanceEndpoint[Atendimento]):
@@ -227,7 +193,7 @@ class SolicitarExames(endpoints.InstanceEndpoint[Atendimento]):
         return super().post()
     
     def check_permission(self):
-        return self.instance.finalizado_em is None and self.check_role('ps')
+        return self.instance.is_agendado() and self.check_role('ps')
 
 
 class PrescreverMedicamento(endpoints.InstanceEndpoint[Atendimento]):
@@ -255,7 +221,7 @@ class PrescreverMedicamento(endpoints.InstanceEndpoint[Atendimento]):
         return super().post()
     
     def check_permission(self):
-        return self.instance.finalizado_em is None and self.check_role('ps')
+        return self.instance.is_agendado() and self.check_role('ps')
 
 
 class RegistrarEcanminhamentosCondutas(endpoints.InstanceEndpoint[Atendimento]):
@@ -303,7 +269,7 @@ class RegistrarEcanminhamentosCondutas(endpoints.InstanceEndpoint[Atendimento]):
         self.redirect(f'/api/atendimento/view/{self.instance.id}/')
 
     def check_permission(self):
-        return self.instance.finalizado_em is None and self.check_role('ps')
+        return self.instance.is_agendado() and self.check_role('ps')
 
 
 class AnexarArquivo(endpoints.ChildEndpoint):
@@ -318,7 +284,7 @@ class AnexarArquivo(endpoints.ChildEndpoint):
     
     def check_permission(self):
         return (
-            self.source.finalizado_em is None
+            self.source.is_agendado()
             and (
                 self.request.GET.get('token') == self.source.token
                 or self.request.user.username == self.source.paciente.cpf
@@ -370,7 +336,7 @@ class FinalizarAtendimento(endpoints.ChildEndpoint):
             self.redirect(f'/api/atendimento/view/{self.source.id}/')
 
     def check_permission(self):
-        return self.source.finalizado_em is None and self.request.user.username == self.source.profissional.pessoa_fisica.cpf and self.source.encaminhamentoscondutas_set.filter(responsavel__pessoa_fisica__cpf=self.request.user.username).exists()
+        return self.source.is_agendado() and self.request.user.username == self.source.profissional.pessoa_fisica.cpf and self.source.encaminhamentoscondutas_set.filter(responsavel__pessoa_fisica__cpf=self.request.user.username).exists()
 
 
 class Publico(endpoints.PublicEndpoint):

@@ -110,6 +110,12 @@ class TipoAtendimento(models.Model):
 
     def __str__(self):
         return "%s" % self.nome
+    
+    def is_teleconsulta(self):
+        return self.nome == 'Teleconsulta'
+    
+    def is_teleinterconsulta(self):
+        return self.nome == 'Teleinterconsulta'
 
 
 class EstadoQuerySet(models.QuerySet):
@@ -557,25 +563,26 @@ class ProfissionalSaude(models.Model):
         horarios_ocupados = {}
         midnight = datetime.combine(datetime.now().date(), time())
         qs_teleconsultor = HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=self.pessoa_fisica, atendimentos_profissional_saude__situacao=SituacaoAtendimento.AGENDADO)
-        qs_teleconsultor.filter(atendimentos_profissional_saude__motivo_cancelamento__isnull=False)
         qs_teleconsultor = qs_teleconsultor.values_list('data_hora', 'atendimentos_profissional_saude').order_by('-data_hora')
         for data_hora, pk in qs_teleconsultor:
-            horarios_ocupados[pk] = data_hora
-        qs_teleinterconsultor = HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=self.pessoa_fisica, atendimentos_especialista__isnull=False)
+            horarios_ocupados[data_hora] = pk
+        qs_teleinterconsultor = HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=self.pessoa_fisica, atendimentos_especialista__situacao=SituacaoAtendimento.AGENDADO)
         qs_teleinterconsultor = qs_teleinterconsultor.values_list('data_hora', 'atendimentos_especialista').order_by('-data_hora')
         for data_hora, pk in qs_teleinterconsultor:
-            horarios_ocupados[pk] = data_hora
-        print(horarios_ocupados)
+            horarios_ocupados[data_hora] = pk
         return horarios_ocupados
     
     def get_horarios_disponiveis(self):
         return self.horarioprofissionalsaude_set.filter(
             data_hora__gte=datetime.now()
-        ).exclude(data_hora__in=self.get_horarios_ocupados().values()).values_list('data_hora', flat=True)
+        ).exclude(data_hora__in=self.get_horarios_ocupados().keys()).values_list('data_hora', flat=True)
 
 
     def criar_sala_virtual(self, nome):
         pass
+
+    def is_user(self, user):
+        return self.pessoa_fisica.cpf == user.username
 
     def formfactory(self):
         return (
@@ -607,10 +614,11 @@ class ProfissionalSaude(models.Model):
         )
 
     def __str__(self):
-        return "%s / %s / %s" % (
+        return "{} / {} / {} / {}".format(
             self.pessoa_fisica.nome,
-            self.especialidade,
             self.get_registro_profissional(),
+            self.especialidade,
+            self.get_estabelecimento(),
         )
 
     def get_registro_profissional(self):
@@ -630,20 +638,8 @@ class ProfissionalSaude(models.Model):
     @meta(None)
     def get_agenda(self, readonly=True, single_selection=False, available=True):
         scheduler = Scheduler(readonly=readonly, chucks=3, single_selection=single_selection)
-        qs = self.horarioprofissionalsaude_set.filter(data_hora__gte=date.today()).order_by('data_hora')
-        for data_hora, atendimento, especialista_id in qs.values_list("data_hora", "atendimentos_profissional_saude", "atendimentos_profissional_saude__especialista_id"):
-            descricao, icon = ('Teleinterconsulta', 'people-group') if especialista_id else ('Teleconsulta', 'people-arrows')
-            if atendimento or available:
-                scheduler.append(data_hora, f'{descricao} {atendimento}' if atendimento else None, icon=icon)
-        for data_hora, atendimento, especialista_id in qs.values_list("data_hora", "atendimentos_especialista", "atendimentos_especialista__especialista_id"):
-            if atendimento:
-                descricao, icon = ('Teleinterconsulta', 'people-group') if especialista_id else ('Teleconsulta', 'people-arrows')
-                if available:
-                    scheduler.append(data_hora, f'{descricao} #{atendimento}' if atendimento else None, icon=icon)
-        qs2 = HorarioProfissionalSaude.objects.filter(data_hora__gte=date.today(),profissional_saude__pessoa_fisica__cpf=self.pessoa_fisica.cpf
-        ).exclude(profissional_saude=self.pk)
-        for data_hora, nucleo in qs2.values_list("data_hora", "profissional_saude__nucleo__nome"):
-            scheduler.append(data_hora, nucleo, icon='x')
+        for data_hora, pk in self.get_horarios_ocupados().items():
+            scheduler.append(data_hora, f'Atendimento {pk}', icon='stethoscope')
         return scheduler
     
     def get_horarios_atendimento(self, readonly=True):
@@ -752,10 +748,10 @@ class SituacaoAtendimento(models.Model):
 class AtendimentoQuerySet(models.QuerySet):
     def all(self):
         return (
-            self.filters("especialidade", "unidade", "paciente", "profissional", "especialista")
+            self.filters("especialidade", "profissional__unidade", "paciente", "profissional", "especialista")
             .fields(
                 ("especialidade", "agendado_para", "tipo"),
-                ("unidade", "profissional", "paciente"),
+                ("get_estabelecimento", "profissional", "paciente"),
                 ("especialista", "get_duracao_prevista"), "get_tags"
             ).limit(5).order_by('-id')
         )
@@ -802,7 +798,7 @@ class AtendimentoQuerySet(models.QuerySet):
         scheduled = {}
         if profissional:
             # exibir os horários ocupados
-            for pk, data_hora in profissional.get_horarios_ocupados().items():
+            for data_hora, pk in profissional.get_horarios_ocupados().items():
                 scheduled[data_hora] = pk
             # agenda ocupada do profissional de saúde
             if is_proprio_profissional:
@@ -816,7 +812,7 @@ class AtendimentoQuerySet(models.QuerySet):
                 selectable = profissional.get_horarios_disponiveis()
                 if especialista:
                     # exibir os horários ocupados do especialista
-                    for pk, data_hora in especialista.get_horarios_ocupados().items():
+                    for data_hora, pk in especialista.get_horarios_ocupados().items():
                         scheduled[data_hora] = pk
                     # cruzando os horários de atendimento do profissional de saúde com os do especialista
                     selectable = selectable.filter(data_hora__in=especialista.get_horarios_disponiveis())
@@ -840,9 +836,6 @@ class Atendimento(models.Model):
         related_name="atendimentos_profissional",
         on_delete=models.CASCADE,
         null=True
-    )
-    unidade = models.ForeignKey(
-        Unidade, null=True, on_delete=models.CASCADE, blank=True
     )
     especialista = models.ForeignKey(
         ProfissionalSaude,
@@ -931,7 +924,7 @@ class Atendimento(models.Model):
             .fieldset(
                 "Dados Gerais",
                 (
-                    "tipo", "unidade", "especialidade",
+                    "tipo", "especialidade",
                 ),
             )
             .fieldset(
@@ -948,6 +941,9 @@ class Atendimento(models.Model):
             )
         )
     
+    def get_estabelecimento(self):
+        return self.profissional.get_estabelecimento()
+    
     def serializer(self):
         return (
             super()
@@ -957,7 +953,7 @@ class Atendimento(models.Model):
             .fieldset(
                 "Dados Gerais",
                 (
-                    ("id", "tipo", "unidade", "unidade__municipio"),
+                    ("id", "tipo", "get_estabelecimento"),
                     ("agendado_para", "get_duracao_prevista", "iniciado_em", "finalizado_em"),
                     "get_url_externa"
                 ) 
@@ -977,7 +973,7 @@ class Atendimento(models.Model):
                             ("sexo", "nome_social"),
                             ("data_nascimento", "get_idade"),
                             ("telefone", "email")
-                        ), attr="paciente", actions=('pessoafisica.atualizarpaciente', 'pessoafisica.historicopaciente')
+                        ), attr="paciente", actions=('pessoafisica.atualizarpaciente', 'pessoafisica.historicopaciente') if self.is_agendado() else ()
                     )
                     .fieldset(
                         "Profissional Responsável", (
@@ -1011,7 +1007,7 @@ class Atendimento(models.Model):
             color = "#265890"
             icon = 'people-group'
         else:
-            color = '#5ca05d'
+            color = '#265890'
             icon = 'people-arrows'
         tag = Badge(color, self.tipo, icon=icon)
         tags.append(tag)
@@ -1023,7 +1019,7 @@ class Atendimento(models.Model):
         elif self.motivo_cancelamento:
             tag = Badge("red", 'Cancelado', icon='x')
         else:
-            tag = Badge("#265890", 'Agendado', icon='clock')
+            tag = Badge("#d9a91f", 'Agendado', icon='clock')
         tags.append(tag)
         return tags
     
@@ -1079,6 +1075,9 @@ class Atendimento(models.Model):
 
     def __str__(self):
         return "%s - %s" % (self.id, self.assunto)
+    
+    def is_agendado(self):
+        self.situacao_id == SituacaoAtendimento.AGENDADO
 
     def save(self, *args, **kwargs):
         pk = self.pk
@@ -1086,6 +1085,8 @@ class Atendimento(models.Model):
             self.token = uuid1().hex
         if self.data is None:
             self.data = timezone.now()
+        if self.situacao_id is None:
+            self.situacao_id = SituacaoAtendimento.AGENDADO
         super(Atendimento, self).save(*args, **kwargs)
         if pk is None:
             self.enviar_notificacao(mensagem="Leia atentamente as informações abaixo e acesse o link no dia/hora marcados.")
@@ -1099,11 +1100,14 @@ class Atendimento(models.Model):
             data_hora = self.agendado_para + timedelta(minutes=minuto)
             if not self.profissional.horarioprofissionalsaude_set.filter(data_hora=data_hora).exists():
                 HorarioProfissionalSaude.objects.create(data_hora=data_hora, profissional_saude=self.profissional)
+            if self.especialista_id and not self.especialista.horarioprofissionalsaude_set.filter(data_hora=data_hora).exists():
+                HorarioProfissionalSaude.objects.create(data_hora=data_hora, profissional_saude=self.especialista)
         
         for minuto in minutos:
-            self.horarios_profissional_saude.add(self.profissional.horarioprofissionalsaude_set.get(data_hora=self.agendado_para + timedelta(minutes=minuto)))
+            data_hora = self.agendado_para + timedelta(minutes=minuto)
+            self.horarios_profissional_saude.add(self.profissional.horarioprofissionalsaude_set.get(data_hora=data_hora))
             if self.especialista_id:
-                self.horarios_especialista.add(self.especialista.horarioprofissionalsaude_set.get(data_hora=self.agendado_para + timedelta(minutes=minuto)))
+                self.horarios_especialista.add(self.especialista.horarioprofissionalsaude_set.get(data_hora=data_hora))
   
     def criar_anexo(self, nome, template, cpf, dados):
         AnexoAtendimento.objects.filter(atendimento=self, nome=nome).delete()
