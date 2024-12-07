@@ -21,6 +21,7 @@ from slth.models import User, RoleFilter
 from slth.components import Scheduler, FileLink, Image, Map, Text, Badge, TemplateContent
 from slth.printer import qrcode_base64
 from django.core import signing
+from django.db import transaction
 
 
 class AdministradorQuerySet(models.QuerySet):
@@ -949,11 +950,11 @@ class Atendimento(models.Model):
             super()
             .serializer()
             .fields('get_tags')
-            .actions('atendimento.enviarnotificacao', 'atendimento.anexararquivo', 'salavirtual', 'atendimento.emitiratestado', 'atendimento.solicitarexames', 'atendimento.prescrevermedicamento', 'atendimento.registrarecanminhamentoscondutas', 'atendimento.finalizaratendimento', 'atendimento.cancelaratendimento')
+            .actions('atendimento.enviarnotificacao', 'atendimento.anexararquivo', 'salavirtual', 'atendimento.emitiratestado', 'atendimento.solicitarexames', 'atendimento.prescrevermedicamento', 'atendimento.registrarecanminhamentoscondutas', 'atendimento.reagendaratendimento', 'atendimento.cancelaratendimento', 'atendimento.retornoatendimento', 'atendimento.finalizaratendimento')
             .fieldset(
                 "Dados Gerais",
                 (
-                    ("id", "tipo", "get_estabelecimento"),
+                    ("id", "tipo", "get_estabelecimento", "situacao"),
                     ("agendado_para", "get_duracao_prevista", "iniciado_em", "finalizado_em"),
                     "get_url_externa"
                 ) 
@@ -1012,13 +1013,13 @@ class Atendimento(models.Model):
         tag = Badge(color, self.tipo, icon=icon)
         tags.append(tag)
 
-        if self.finalizado_em:
-            tag = Badge("#5ca05d", 'Finalizada', icon='check')
-        elif self.motivo_reagendamento:
-            tag = Badge("orange", 'Reagendado', icon='calendar')
-        elif self.motivo_cancelamento:
+        if self.situacao_id == SituacaoAtendimento.FINALIZADO:
+            tag = Badge("#5ca05d", 'Finalizado', icon='check')
+        elif self.situacao_id == SituacaoAtendimento.REAGENDADO:
+            tag = Badge("#c4beb1", 'Reagendado', icon='calendar')
+        elif self.situacao_id == SituacaoAtendimento.CANCELADO:
             tag = Badge("red", 'Cancelado', icon='x')
-        else:
+        elif self.situacao_id == SituacaoAtendimento.AGENDADO:
             tag = Badge("#d9a91f", 'Agendado', icon='clock')
         tags.append(tag)
         return tags
@@ -1077,7 +1078,7 @@ class Atendimento(models.Model):
         return "%s - %s" % (self.id, self.assunto)
     
     def is_agendado(self):
-        self.situacao_id == SituacaoAtendimento.AGENDADO
+        return self.situacao_id == SituacaoAtendimento.AGENDADO
 
     def save(self, *args, **kwargs):
         pk = self.pk
@@ -1122,6 +1123,31 @@ class Atendimento(models.Model):
     def cancelar(self):
         self.situacao_id = SituacaoAtendimento.CANCELADO
         self.save()
+
+    @transaction.atomic()
+    def reagendar(self, data_hora):
+        self.situacao_id = SituacaoAtendimento.REAGENDADO
+        self.save()
+        self.pk = None
+        self.situacao_id = None
+        self.data = None
+        self.agendado_para = data_hora
+        self.motivo_reagendamento = None
+        self.save()
+        self.post_save()
+        return self
+    
+    @transaction.atomic()
+    def retorno(self, data_hora):
+        self.pk = None
+        self.situacao_id = None
+        self.data = None
+        self.agendado_para = data_hora
+        self.motivo_reagendamento = None
+        self.motivo_cancelamento = None
+        self.save()
+        self.post_save()
+        return self
 
     def finalizar(self, authorization_code=None):
         self.situacao_id = SituacaoAtendimento.FINALIZADO

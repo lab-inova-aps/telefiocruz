@@ -239,9 +239,7 @@ class RegistrarEcanminhamentosCondutas(endpoints.InstanceEndpoint[Atendimento]):
         return form
 
     def get(self):
-        responsavel = ProfissionalSaude.objects.get(
-            pessoa_fisica__cpf=self.request.user.username
-        )
+        responsavel = self.instance.profissional if self.instance.profissional.is_user(self.request.user) else self.instance.especialista
         instance = EncaminhamentosCondutas.objects.filter(
             atendimento=self.instance, responsavel=responsavel
         ).first()
@@ -307,7 +305,56 @@ class CancelarAtendimento(endpoints.ChildEndpoint):
         return super().post()
     
     def check_permission(self):
-        return self.source.situacao_id == SituacaoAtendimento.AGENDADO and self.request.user.username == self.source.profissional.pessoa_fisica.cpf
+        return self.source.is_agendado() and not self.source.get_condutas_ecaminhamentos().exists() and self.request.user.username == self.source.profissional.pessoa_fisica.cpf
+
+
+class ReagendarAtendimento(endpoints.ChildEndpoint):
+    data_hora = forms.DateTimeField(label='Data/Hora')
+    class Meta:
+        icon = 'calendar'
+        verbose_name = 'Reagendar Atendimento'
+
+    def getform(self, form):
+        form = super().getform(form)
+        is_proprio_profissional = self.source.profissional.is_user(self.request.user)
+        scheduler = Atendimento.objects.agenda(self.source.profissional, self.source.especialista, self.source.tipo.is_teleconsulta(), is_proprio_profissional)
+        form.fields['data_hora'] = forms.SchedulerField(scheduler=scheduler)
+        return form
+
+    def get(self):
+        return self.formfactory(self.source).fieldset(None, fields=('motivo_reagendamento', 'data_hora'))
+    
+    def post(self):
+        instance = self.source.reagendar(self.cleaned_data['data_hora'])
+        return self.redirect('/api/atendimento/view/{}/'.format(instance.pk))
+    
+    def check_permission(self):
+        return self.source.is_agendado() and not self.source.get_condutas_ecaminhamentos().exists() and self.request.user.username == self.source.profissional.pessoa_fisica.cpf
+
+
+class RetornoAtendimento(endpoints.ChildEndpoint):
+    data_hora = forms.DateTimeField(label='Data/Hora')
+    
+    class Meta:
+        icon = 'calendar-plus'
+        verbose_name = 'Agendar Retorno'
+
+    def getform(self, form):
+        form = super().getform(form)
+        is_proprio_profissional = self.source.profissional.is_user(self.request.user)
+        scheduler = Atendimento.objects.agenda(self.source.profissional, self.source.especialista, self.source.tipo.is_teleconsulta(), is_proprio_profissional)
+        form.fields['data_hora'] = forms.SchedulerField(scheduler=scheduler)
+        return form
+
+    def get(self):
+        return self.formfactory(self.source).fields('data_hora')
+    
+    def post(self):
+        instance = self.source.retorno(self.cleaned_data['data_hora'])
+        return self.redirect('/api/atendimento/view/{}/'.format(instance.pk))
+    
+    def check_permission(self):
+        return self.request.user.username == self.source.profissional.pessoa_fisica.cpf
 
 
 class FinalizarAtendimento(endpoints.ChildEndpoint):
