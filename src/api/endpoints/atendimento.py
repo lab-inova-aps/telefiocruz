@@ -99,6 +99,7 @@ class Add(endpoints.AddEndpoint[Atendimento]):
         return self.check_role('o', 'ps')
     
     def post(self):
+        self.instance.enviar_notificacao(mensagem="Leia atentamente as informações abaixo e acesse o link no dia/hora marcados.")
         return self.redirect('/api/atendimento/view/{}/'.format(self.instance.pk))
 
 

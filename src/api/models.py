@@ -899,7 +899,7 @@ class Atendimento(models.Model):
             envolvidos.append(self.especialista.pessoa_fisica)
         return envolvidos
     
-    def enviar_notificacao(self, mensagem=None):
+    def enviar_notificacao(self, mensagem=None, complemento=None):
         for pessoa_fisica in self.get_envolvidos():
             data_hora = self.agendado_para
             fuso_horario = pessoa_fisica.municipio and pessoa_fisica.municipio.estado and pessoa_fisica.municipio.estado.fuso_horario or None
@@ -907,16 +907,18 @@ class Atendimento(models.Model):
                 data_hora = fuso_horario.localtime(data_hora)
             subject = "Telefiocruz - Notificação de Atendimento"
             content = "<p>Notificação referente ao atendimento <b>Nº {}</b>: {}</p>".format(self.get_numero()['label'], mensagem or "")
-            content += "<p><b>Data/Hora</b>: {}</p>".format(data_hora.strftime('%d/%m/%Y %H:%M'))
+            content += "<p><b>Data/Hora</b>: {} ({})</p>".format(data_hora.strftime('%d/%m/%Y %H:%M'), pessoa_fisica.municipio or '')
             content += "<p><b>Especialidade</b>: {}</p>".format(self.especialidade)
             content += "<p><b>Profissional Responsável</b>: {}</p>".format(self.profissional)
             if self.especialista:
                 content += "<p><b>Especialista</b>: {}</p>".format(self.especialista)
+            for k, v in (complemento or {}).items():
+                content += "<p><b>{}</b>: {}</p>".format(k, v)
             url = self.get_url_interna()
             if pessoa_fisica == self.paciente:
                 url = self.get_url_externa()
             email = Email(to=pessoa_fisica.email, subject=subject, content=content, action="Acessar", url=url)
-            #email.send()
+            email.send()
 
     def formfactory(self):
         return (
@@ -1012,17 +1014,19 @@ class Atendimento(models.Model):
             icon = 'people-arrows'
         tag = Badge(color, self.tipo, icon=icon)
         tags.append(tag)
-
-        if self.situacao_id == SituacaoAtendimento.FINALIZADO:
-            tag = Badge("#5ca05d", 'Finalizado', icon='check')
-        elif self.situacao_id == SituacaoAtendimento.REAGENDADO:
-            tag = Badge("#c4beb1", 'Reagendado', icon='calendar')
-        elif self.situacao_id == SituacaoAtendimento.CANCELADO:
-            tag = Badge("red", 'Cancelado', icon='x')
-        elif self.situacao_id == SituacaoAtendimento.AGENDADO:
-            tag = Badge("#d9a91f", 'Agendado', icon='clock')
-        tags.append(tag)
+        tags.append(self.get_situacao())
         return tags
+    
+    @meta('Situação')
+    def get_situacao(self):
+        if self.situacao_id == SituacaoAtendimento.FINALIZADO:
+            return Badge("#5ca05d", 'Finalizado', icon='check')
+        elif self.situacao_id == SituacaoAtendimento.REAGENDADO:
+            return Badge("#c4beb1", 'Reagendado', icon='calendar')
+        elif self.situacao_id == SituacaoAtendimento.CANCELADO:
+            return Badge("red", 'Cancelado', icon='x')
+        elif self.situacao_id == SituacaoAtendimento.AGENDADO:
+            return Badge("#d9a91f", 'Agendado', icon='clock')
     
     @meta('Anexos')
     def get_anexos(self):
@@ -1081,7 +1085,6 @@ class Atendimento(models.Model):
         return self.situacao_id == SituacaoAtendimento.AGENDADO
 
     def save(self, *args, **kwargs):
-        pk = self.pk
         if self.token is None:
             self.token = uuid1().hex
         if self.data is None:
@@ -1089,8 +1092,6 @@ class Atendimento(models.Model):
         if self.situacao_id is None:
             self.situacao_id = SituacaoAtendimento.AGENDADO
         super(Atendimento, self).save(*args, **kwargs)
-        if pk is None:
-            self.enviar_notificacao(mensagem="Leia atentamente as informações abaixo e acesse o link no dia/hora marcados.")
 
     def post_save(self):
         minutos = [0]
@@ -1123,9 +1124,13 @@ class Atendimento(models.Model):
     def cancelar(self):
         self.situacao_id = SituacaoAtendimento.CANCELADO
         self.save()
+        complemento = {'Motivo do Cancelamento': self.motivo_cancelamento}
+        self.enviar_notificacao('O atendimento foi cancelado.', complemento)
 
     @transaction.atomic()
     def reagendar(self, data_hora):
+        numero = self.get_numero()['label']
+        motivo = self.motivo_reagendamento
         self.situacao_id = SituacaoAtendimento.REAGENDADO
         self.save()
         self.pk = None
@@ -1135,6 +1140,8 @@ class Atendimento(models.Model):
         self.motivo_reagendamento = None
         self.save()
         self.post_save()
+        complemento = {'Motivo do Reagendamento': motivo}
+        self.enviar_notificacao(f'O atendimento anterior de número Nº {numero} foi reagendado. Observe a nova data/hora a seguir.', complemento)
         return self
     
     @transaction.atomic()
@@ -1147,6 +1154,7 @@ class Atendimento(models.Model):
         self.motivo_cancelamento = None
         self.save()
         self.post_save()
+        self.enviar_notificacao('Leia atentamente as informações abaixo e acesse o link no dia/hora marcados.')
         return self
 
     def finalizar(self, authorization_code=None):
@@ -1160,6 +1168,7 @@ class Atendimento(models.Model):
                 signer.authorize(authorization_code)
                 signer.sign(anexo.arquivo.path)
                 anexo.checar_assinaturas()
+        self.enviar_notificacao('O atendimento foi finalizado.')
 
 
 class AnexoAtendimento(models.Model):

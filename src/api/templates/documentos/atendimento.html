@@ -39,11 +39,11 @@
         <td><b>Tipo:</b></td>
         <td>{{ atendimento.tipo }}</td>
         <td><b>Unidade:</b></td>
-        <td>{{ atendimento.unidade|default:"-" }}</td>
+        <td>{{ atendimento.profissional.get_estabelecimento|default:"-" }}</td>
     </tr>
     <tr>
         <td><b>Município:</b></td>
-        <td>{{ atendimento.unidade.municipio|default:"-" }}</td>
+        <td>{{ atendimento.profissional.get_estabelecimento.municipio|default:"-" }}</td>
         <td><b>Duração:</b></td>
         <td>{{ atendimento.duracao }} minutos</td>
     </tr>
@@ -130,6 +130,6 @@
 
 <br><br><br><br>
 <p align="right">
-    <b>{{ atendimento.unidade.municipio }}</b>, {{ data_hora }}
+    <b>{{ atendimento.profissional.get_estabelecimento.municipio }}</b>, {{ data_hora }}
 </p>
 

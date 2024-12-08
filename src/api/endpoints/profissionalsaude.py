@@ -129,7 +129,7 @@ class AtendimentosDoDia(endpoints.QuerySetEndpoint[Atendimento]):
         verbose_name= 'Atendimentos do Dia'
 
     def get(self):
-        return super().get().do_dia().fields('get_numero', 'tipo', 'paciente', 'assunto', 'get_agendado_para').actions('atendimento.view').lookup('ps', profissional__pessoa_fisica__cpf='username', especialista__pessoa_fisica__cpf='username')
+        return super().get().do_dia().fields('get_numero', 'tipo', 'paciente', 'get_situacao', 'get_agendado_para').actions('atendimento.view').lookup('ps', profissional__pessoa_fisica__cpf='username', especialista__pessoa_fisica__cpf='username')
     
     def check_permission(self):
         return self.check_role('ps', superuser=False)
