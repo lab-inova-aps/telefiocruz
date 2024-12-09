@@ -641,6 +641,9 @@ class ProfissionalSaude(models.Model):
         scheduler = Scheduler(readonly=readonly, chucks=3, single_selection=single_selection)
         for data_hora, pk in self.get_horarios_ocupados().items():
             scheduler.append(data_hora, f'Atendimento {pk}', icon='stethoscope')
+        if available:
+            for data_hora in self.get_horarios_disponiveis():
+                scheduler.append(data_hora)
         return scheduler
     
     def get_horarios_atendimento(self, readonly=True):
