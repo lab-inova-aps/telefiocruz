@@ -8,15 +8,17 @@ from .models import Estado, Municipio
 
 def buscar_pessoafisica(cpf):
     dados = busca_por_cpf(cpf.replace('.', '').replace('-', ''))
-    nome = dados['nome']
-    data_nascimento = dados['data_nascimento'] #datetime.strptime(dados['data_nascimento'], '%Y-%m-%d').strftime('%d/%m/%Y')
-    sexo = dict(M='Masculino', F='Feminino')[dados['sexo']]
-    cep = dados['cep']
-    if cep:
-        cep = '{}.{}-{}'.format(cep[0:2], cep[2:5], cep[5:])
-    endereco = dados['logradouro']
-    numero = dados['numero']
-    return dict(nome=nome, data_nascimento=data_nascimento, sexo=sexo, cep=cep, endereco=endereco, numero=numero)
+    if dados:
+        nome = dados['nome']
+        data_nascimento = dados['data_nascimento'] #datetime.strptime(dados['data_nascimento'], '%Y-%m-%d').strftime('%d/%m/%Y')
+        sexo = dict(M='Masculino', F='Feminino')[dados['sexo']]
+        cep = dados['cep']
+        if cep:
+            cep = '{}.{}-{}'.format(cep[0:2], cep[2:5], cep[5:])
+        endereco = dados['logradouro']
+        numero = dados['numero']
+        return dict(nome=nome, data_nascimento=data_nascimento, sexo=sexo, cep=cep, endereco=endereco, numero=numero)
+    return {}
 
 def buscar_endereco(cep):
     endereco = {}
