@@ -109,7 +109,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 ####### SLTH ########
 
 LANGUAGE_CODE = 'pt-br'
-TIME_ZONE = 'America/Recife'
+TIME_ZONE = os.environ.get('TIME_ZONE', 'America/Recife')
 USE_I18N = True
 USE_L10N = True
 USE_TZ = False
