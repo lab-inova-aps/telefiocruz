@@ -99,7 +99,7 @@ class Add(endpoints.AddEndpoint[Atendimento]):
         return self.check_role('o', 'ps')
     
     def post(self):
-        self.instance.enviar_notificacao(mensagem="Leia atentamente as informações abaixo e acesse o link no dia/hora marcados.")
+        self.instance.enviar_notificacao(mensagem="Atendimento agendado. Leia atentamente as informações abaixo e acesse o link no dia/hora marcados.")
         return self.redirect('/api/atendimento/view/{}/'.format(self.instance.pk))
 
 
@@ -408,7 +408,7 @@ class Publico(endpoints.PublicEndpoint):
 
 
 class EnviarNotificacao(endpoints.ChildEndpoint):
-    mensagem = forms.CharField(label='Mensagem', widget=Textarea())
+    mensagem = forms.CharField(label='Mensagem', widget=Textarea(), initial='Atendimento confirmado. Não esqueça de acessar a plataforma no horário marcado.')
 
     class Meta:
         modal = True
@@ -423,4 +423,4 @@ class EnviarNotificacao(endpoints.ChildEndpoint):
         return super().post()
     
     def check_permission(self):
-        return self.request.user.is_superuser
+        return self.source.is_agendado() and self.check_role('ps')

@@ -4,7 +4,7 @@ import re
 from datetime import datetime
 from .datasus import busca_por_cpf
 from .models import Estado, Municipio
-        
+
 
 def buscar_pessoafisica(cpf):
     dados = busca_por_cpf(cpf.replace('.', '').replace('-', ''))

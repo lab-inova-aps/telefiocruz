@@ -22,6 +22,7 @@ from slth.components import Scheduler, FileLink, Image, Map, Text, Badge, Templa
 from slth.printer import qrcode_base64
 from django.core import signing
 from django.db import transaction
+from . import whatsapp
 
 
 class AdministradorQuerySet(models.QuerySet):
@@ -892,15 +893,19 @@ class Atendimento(models.Model):
         verbose_name = "Atendimento"
         verbose_name_plural = "Atendimentos"
 
-    def get_envolvidos(self):
+    def get_envolvidos(self, paciente=True, profissional=True, especialista=True):
         envolvidos = []
-        if self.paciente.email:
+        if paciente:
             envolvidos.append(self.paciente)
-        if self.profissional.pessoa_fisica.email:
+        if profissional:
             envolvidos.append(self.profissional.pessoa_fisica)
-        if self.especialista and self.especialista.pessoa_fisica.email:
+        if especialista and self.especialista:
             envolvidos.append(self.especialista.pessoa_fisica)
         return envolvidos
+    
+    @meta('Notificações')
+    def get_notificacoes(self):
+        return self.notificacao_set.ignore('atendimento')
     
     def enviar_notificacao(self, mensagem=None, complemento=None):
         for pessoa_fisica in self.get_envolvidos():
@@ -920,8 +925,21 @@ class Atendimento(models.Model):
             url = self.get_url_interna()
             if pessoa_fisica == self.paciente:
                 url = self.get_url_externa()
-            email = Email(to=pessoa_fisica.email, subject=subject, content=content, action="Acessar", url=url)
-            email.send()
+            if pessoa_fisica.email:
+                email = Email(to=pessoa_fisica.email, subject=subject, content=content, action="Acessar", url=url)
+                #email.send()
+                Notificacao.objects.create(atendimento=self, data_hora=datetime.now(), canal=Notificacao.CANAL_EMAIL, mensagem=mensagem, destinatario=pessoa_fisica)
+            if pessoa_fisica.telefone:
+                content = "*SISTEMA TELEFIOCRUZ*\n\n"
+                content += "Notificação referente ao atendimento *nº {}*: {}\n\n".format(self.get_numero()['label'], mensagem or "")
+                content += "*Data/Hora*: {} ({})\n".format(data_hora.strftime('%d/%m/%Y %H:%M'), pessoa_fisica.municipio or '')
+                content += "*Especialidade*: {}\n".format(self.especialidade)
+                content += "*Profissional Responsável*: {}\n".format(self.profissional)
+                if self.especialista:
+                    content += "*Especialista*: {}\n\n".format(self.especialista)
+                content += "*Link de Acesso*: {}".format(self.get_url_externa())
+                whatsapp.enviar_mensagem(pessoa_fisica.telefone, content)
+                Notificacao.objects.create(atendimento=self, data_hora=datetime.now(), canal=Notificacao.CANAL_WHATSAPP, mensagem=mensagem, destinatario=pessoa_fisica)
 
     def formfactory(self):
         return (
@@ -995,6 +1013,7 @@ class Atendimento(models.Model):
                     .fieldset('Outras Informações', ("motivo_cancelamento", "motivo_reagendamento"))
                 .parent()
                 .queryset('Encaminhamentos', 'get_condutas_ecaminhamentos', roles=('ps',))
+                .queryset('Notificações', 'get_notificacoes', roles=('ps',))
             .parent()
         )
     
@@ -1128,7 +1147,7 @@ class Atendimento(models.Model):
         self.situacao_id = SituacaoAtendimento.CANCELADO
         self.save()
         complemento = {'Motivo do Cancelamento': self.motivo_cancelamento}
-        self.enviar_notificacao('O atendimento foi cancelado.', complemento)
+        self.enviar_notificacao('Atendimento cancelado.', complemento)
 
     @transaction.atomic()
     def reagendar(self, data_hora):
@@ -1144,7 +1163,7 @@ class Atendimento(models.Model):
         self.save()
         self.post_save()
         complemento = {'Motivo do Reagendamento': motivo}
-        self.enviar_notificacao(f'O atendimento anterior de número Nº {numero} foi reagendado. Observe a nova data/hora a seguir.', complemento)
+        self.enviar_notificacao(f'Atendimento anterior de número Nº {numero} reagendado. Observe a nova data/hora e acesse o link no dia/hora marcados.', complemento)
         return self
     
     @transaction.atomic()
@@ -1157,7 +1176,7 @@ class Atendimento(models.Model):
         self.motivo_cancelamento = None
         self.save()
         self.post_save()
-        self.enviar_notificacao('Leia atentamente as informações abaixo e acesse o link no dia/hora marcados.')
+        self.enviar_notificacao('Agendamento cadastrado. Leia atentamente as informações e acesse o link no dia/hora marcados.')
         return self
 
     def finalizar(self, authorization_code=None):
@@ -1171,7 +1190,38 @@ class Atendimento(models.Model):
                 signer.authorize(authorization_code)
                 signer.sign(anexo.arquivo.path)
                 anexo.checar_assinaturas()
-        self.enviar_notificacao('O atendimento foi finalizado.')
+        self.enviar_notificacao('Atendimento finalizado pelo profissional de saúde.')
+
+
+class NotificacaoQuerySet(models.QuerySet):
+    def all(self):
+        return self
+
+
+class Notificacao(models.Model):
+    CANAL_EMAIL = 'E-mail'
+    CANAL_WHATSAPP = 'Whatsapp'
+
+    atendimento = models.ForeignKey(Atendimento, verbose_name='Atendimento', on_delete=models.CASCADE)
+    canal = models.CharField(verbose_name='Canal')
+    data_hora = models.DateTimeField(verbose_name='Data/Hora')
+    destinatario = models.ForeignKey(PessoaFisica, verbose_name='Destinatário', on_delete=models.CASCADE)
+    mensagem = models.CharField(verbose_name='Mensagem')
+
+    class Meta:
+        icon = 'mail-bulk'
+        verbose_name = 'Notificação'
+        verbose_name_plural = 'Notificações'
+
+    objects = NotificacaoQuerySet()
+
+    def __str__(self):
+        return f'Notificação {self.id}'
+    
+    @meta('Destinatário')
+    def get_destinatario(self):
+        return self.destinatario.nome
+
 
 
 class AnexoAtendimento(models.Model):
