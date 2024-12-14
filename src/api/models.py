@@ -927,7 +927,7 @@ class Atendimento(models.Model):
                 url = self.get_url_externa()
             if pessoa_fisica.email:
                 email = Email(to=pessoa_fisica.email, subject=subject, content=content, action="Acessar", url=url)
-                #email.send()
+                email.send()
                 Notificacao.objects.create(atendimento=self, data_hora=datetime.now(), canal=Notificacao.CANAL_EMAIL, mensagem=mensagem, destinatario=pessoa_fisica)
             if pessoa_fisica.telefone:
                 content = "*SISTEMA TELEFIOCRUZ*\n\n"
