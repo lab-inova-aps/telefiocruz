@@ -59,20 +59,19 @@ class AlterarAgenda(endpoints.InstanceEndpoint[ProfissionalSaude]):
         verbose_name = "Alterar Agenda"
 
     def get(self):
-        return (
-            self.formfactory()
-            .display(
-                "Dados do Profissional",
-                (("pessoa_fisica", "especialidade"),),
-            )
-            .fields()
-        )
+        if 'week' in self.request.GET:
+            return self.get_agenda()
+        else:
+            return self.formfactory().display("Dados do Profissional", (("pessoa_fisica", "especialidade"),),).fields()
 
     def getform(self, form):
-        form.fields["horarios"] = forms.SchedulerField(
-            scheduler=self.instance.get_agenda(readonly=False)
-        )
+        form.fields["horarios"] = forms.SchedulerField(scheduler=self.get_agenda())
         return form
+    
+    def get_agenda(self):
+        return self.instance.get_agenda(
+            readonly=False, semana=int(self.request.GET.get('week', 1)), url=self.request.path
+        )
 
     def post(self):
         for data_hora in self.cleaned_data["horarios"]["select"]:
@@ -86,21 +85,25 @@ class AlterarAgenda(endpoints.InstanceEndpoint[ProfissionalSaude]):
 
 
 class DefinirHorario(endpoints.InstanceEndpoint[ProfissionalSaude]):
-    horarios = forms.SchedulerField(scheduler=components.Scheduler(weekly=True, chucks=3))
+    inicio = forms.DateField(label='Início', required=False)
+    fim = forms.DateField(label='Fim', required=False)
+    horarios = forms.SchedulerField(label='Dia/Horário', scheduler=components.Scheduler(weekly=True, chucks=3))
 
     class Meta:
         icon = "user-clock"
         verbose_name = "Definir Horários"
 
     def getform(self, form):
-        form.fields['horarios'] = forms.SchedulerField(scheduler=self.instance.get_horarios_atendimento(False))
+        form.fields['horarios'] = forms.SchedulerField(label='Dia/Horário', scheduler=self.instance.get_horarios_atendimento(False))
         return super().getform(form)
 
     def get(self):
-        return (self.formfactory().fields('horarios'))
+        return self.formfactory().fields(('inicio', 'fim'), 'horarios')
     
     def post(self):
-        self.instance.atualizar_horarios_atendimento(self.cleaned_data['horarios']['select'], self.cleaned_data['horarios']['deselect'])
+        inicio = self.cleaned_data['inicio']
+        fim = self.cleaned_data['fim']
+        self.instance.atualizar_horarios_atendimento(inicio, fim, self.cleaned_data['horarios']['select'], self.cleaned_data['horarios']['deselect'])
         return super().post()
     
     def check_permission(self):
@@ -108,19 +111,23 @@ class DefinirHorario(endpoints.InstanceEndpoint[ProfissionalSaude]):
 
 
 class DefinirHorarios(endpoints.Endpoint):
+    inicio = forms.DateField(label='Início', required=False)
+    fim = forms.DateField(label='Fim', required=False)
     profissionais = forms.ModelMultipleChoiceField(ProfissionalSaude.objects, label='Profissionais de Saúde')
-    horarios = forms.SchedulerField(scheduler=components.Scheduler(weekly=True, chucks=3))
+    horarios = forms.SchedulerField(label='Dia/Horário', scheduler=components.Scheduler(weekly=True, chucks=3))
 
     class Meta:
         icon = "user-clock"
         verbose_name = "Definir Horários de Atendimento"
 
     def get(self):
-        return (self.formfactory().fields('profissionais', 'horarios'))
+        return self.formfactory().fields(('inicio', 'fim'), 'profissionais', 'horarios')
     
     def post(self):
+        inicio = self.cleaned_data['inicio']
+        fim = self.cleaned_data['fim']
         for profissional_saude in self.cleaned_data['profissionais']:
-            profissional_saude.atualizar_horarios_atendimento(self.cleaned_data['horarios']['select'], self.cleaned_data['horarios']['deselect'])
+            profissional_saude.atualizar_horarios_atendimento(inicio, fim, self.cleaned_data['horarios']['select'], self.cleaned_data['horarios']['deselect'])
         return super().post()
 
 

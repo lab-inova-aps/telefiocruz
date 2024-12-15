@@ -56,10 +56,12 @@ class AddProfissionalSaude(endpoints.RelationEndpoint[ProfissionalSaude]):
 class Agenda(endpoints.InstanceEndpoint[Nucleo]):
     class Meta:
         icon = 'clock'
-        verbose_name = 'Agenda de Horários'
+        verbose_name = 'Agenda de Atendimento'
 
     def get(self):
-        return self.serializer().fields('nome', 'get_agenda')
+        return self.instance.get_agenda(
+            semana=int(self.request.GET.get('week', 1)), url=self.request.path
+        )
     
     def check_permission(self):
         return True

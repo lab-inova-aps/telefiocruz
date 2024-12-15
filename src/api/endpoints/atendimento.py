@@ -19,6 +19,7 @@ class Atendimentos(endpoints.ListEndpoint[Atendimento]):
 
 
 class Add(endpoints.AddEndpoint[Atendimento]):
+
     class Meta:
         icon = 'plus'
         modal = False
@@ -29,7 +30,7 @@ class Add(endpoints.AddEndpoint[Atendimento]):
     
     def getform(self, form):
         form = super().getform(form)
-        form.fields['agendado_para'] = forms.SchedulerField(scheduler=Atendimento.objects.agenda())
+        form.fields['agendado_para'] = forms.SchedulerField(label="Data/Hora", scheduler=Atendimento.objects.agenda())
         form.fields['profissional'].pick = True
         return form
         
@@ -145,7 +146,7 @@ class HorariosDisponiveis(endpoints.PublicEndpoint):
         especialista = ProfissionalSaude.objects.filter(pk=self.request.GET.get('especialista')).first()
         is_teleconsulta = self.request.GET.get('tipo') == '1'
         is_proprio_profissional = profissional and profissional.is_user(self.request.user)
-        return Atendimento.objects.agenda(profissional, especialista, is_teleconsulta, is_proprio_profissional)
+        return Atendimento.objects.agenda(profissional, especialista, is_teleconsulta, is_proprio_profissional, int(self.request.GET.get('week', 1)))
 
 
 class EmitirAtestado(endpoints.InstanceEndpoint[Atendimento]):
