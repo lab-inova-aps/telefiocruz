@@ -175,7 +175,9 @@ class MinhaAgenda(endpoints.Endpoint):
         verbose_name = 'Minha Agenda'
 
     def get(self):
-        return ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username).first().get_agenda()
+        return ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username).first().get_agenda(
+            semana=int(self.request.GET.get('week', 1)), url=self.base_url
+        )
     
     def check_permission(self):
         return self.check_role('ps', superuser=False)
