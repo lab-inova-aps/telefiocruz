@@ -77,6 +77,11 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
         if self.instance.iniciado_em is None:
             self.instance.iniciado_em = datetime.now()
             self.instance.save()
+
+        pessoa_fisica = PessoaFisica.objects.filter(cpf=self.request.user.username).first()
+        mensagem = '{} acessou a sala virtual.'.format(pessoa_fisica.nome)
+        self.instance.enviar_notificacao(mensagem, remetente=pessoa_fisica)
+
         return (
             self.serializer().actions('atendimento.anexararquivo', 'atendimento.emitiratestado', 'atendimento.solicitarexames', 'atendimento.prescrevermedicamento')
             .endpoint('VideoChamada', 'videochamada', wrap=False)

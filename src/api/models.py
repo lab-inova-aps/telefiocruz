@@ -25,11 +25,6 @@ from django.db import transaction
 from . import whatsapp
 
 
-class AdministradorQuerySet(models.QuerySet):
-    def all(self):
-        return self
-
-
 @role('a', username='cpf')
 class Administrador(models.Model):
     nome = models.CharField(verbose_name='Nome', max_length=80)
@@ -39,10 +34,21 @@ class Administrador(models.Model):
         verbose_name = 'Administrador'
         verbose_name_plural = 'Administradores'
 
-    objects = AdministradorQuerySet()
+    def __str__(self):
+        return self.nome
+
+
+@role('s', username='cpf')
+class Supervisor(models.Model):
+    nome = models.CharField(verbose_name='Nome', max_length=80)
+    cpf = models.CharField(verbose_name='CPF', max_length=14, unique=True)
+
+    class Meta:
+        verbose_name = 'Supervisor'
+        verbose_name_plural = 'Supervisores'
 
     def __str__(self):
-        return f'Administrador {self.id}'
+        return self.nome
 
 
 class CIDQuerySet(models.QuerySet):
@@ -916,8 +922,10 @@ class Atendimento(models.Model):
     def get_notificacoes(self):
         return self.notificacao_set.ignore('atendimento')
     
-    def enviar_notificacao(self, mensagem=None, complemento=None):
+    def enviar_notificacao(self, mensagem=None, complemento=None, remetente=None):
         for pessoa_fisica in self.get_envolvidos():
+            if pessoa_fisica == remetente:
+                continue
             data_hora = self.agendado_para
             fuso_horario = pessoa_fisica.municipio and pessoa_fisica.municipio.estado and pessoa_fisica.municipio.estado.fuso_horario or None
             if fuso_horario:
@@ -1007,7 +1015,7 @@ class Atendimento(models.Model):
                     .fieldset('Outras Informações', ("motivo_cancelamento", "motivo_reagendamento"))
                 .parent()
                 .queryset('Encaminhamentos', 'get_condutas_ecaminhamentos', roles=('ps',))
-                .queryset('Notificações', 'get_notificacoes', roles=('ps',))
+                .queryset('Notificações', 'get_notificacoes')
             .parent()
         )
     

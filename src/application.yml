@@ -16,6 +16,7 @@ application:
     p: Paciente
     gu: Gestor de Unidade
     ou: Operador de Unidade
+    s: Supervisor
   index: dashboard
   dashboard:
     toolbar:
@@ -52,7 +53,9 @@ application:
     tools:
     settings:
   menu:
-    user-gear:Administradores: administrador.administradores
+    user-gear:Usuários:
+      Administradores: administrador.administradores
+      Supervisores: supervisor.supervisores
     list:Cadastros Gerais:
       CIDs: cid.cids
       CIAPs: ciap.ciaps

@@ -9,5 +9,5 @@ class Command(BaseCommand):
         user.set_password('123')
         total = User.objects.update(password=user.password)
         print(f'{total} senhas atualizadas!')
-        total = PessoaFisica.objects.update(email='')
-        print(f'{total} emails atualizados!')
+        total = PessoaFisica.objects.update(email='', telefone='')
+        print(f'{total} emails/telefones atualizados!')

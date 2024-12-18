@@ -112,7 +112,7 @@ class Delete(endpoints.DeleteEndpoint[Atendimento]):
 class View(endpoints.ViewEndpoint[Atendimento]):
 
     def check_permission(self):
-        return self.check_role('g', 'ps', 'o') or self.instance.paciente.cpf == self.request.user.username
+        return self.check_role('g', 'ps', 'o', 's') or self.instance.paciente.cpf == self.request.user.username
 
 
 class Agenda(endpoints.QuerySetEndpoint[Atendimento]):
@@ -130,6 +130,7 @@ class Agenda(endpoints.QuerySetEndpoint[Atendimento]):
             .lookup('ou', unidade__operadores__cpf='username')
             .lookup('ps', profissional__pessoa_fisica__cpf='username', especialista__pessoa_fisica__cpf='username')
             .lookup('p', paciente__cpf='username')
+            .lookup('s')
             .calendar("agendado_para")
         )
 
