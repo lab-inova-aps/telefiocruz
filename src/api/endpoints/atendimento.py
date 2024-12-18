@@ -112,7 +112,7 @@ class Delete(endpoints.DeleteEndpoint[Atendimento]):
 class View(endpoints.ViewEndpoint[Atendimento]):
 
     def check_permission(self):
-        return self.check_role('g', 'ps', 'o', 's') or self.instance.paciente.cpf == self.request.user.username
+        return self.check_role('g', 'o', 's') or self.instance.is_envolvido(self.request.user)
 
 
 class Agenda(endpoints.QuerySetEndpoint[Atendimento]):
@@ -176,7 +176,7 @@ class EmitirAtestado(endpoints.InstanceEndpoint[Atendimento]):
         return super().post()
     
     def check_permission(self):
-        return self.instance.is_agendado() and self.check_role('ps')
+        return self.instance.is_agendado() and self.check_role('ps') and self.instance.is_envolvido(self.request.user)
 
 
 class SolicitarExames(endpoints.InstanceEndpoint[Atendimento]):
@@ -196,7 +196,7 @@ class SolicitarExames(endpoints.InstanceEndpoint[Atendimento]):
         return super().post()
     
     def check_permission(self):
-        return self.instance.is_agendado() and self.check_role('ps')
+        return self.instance.is_agendado() and self.check_role('ps') and self.instance.is_envolvido(self.request.user)
 
 
 class PrescreverMedicamento(endpoints.InstanceEndpoint[Atendimento]):
@@ -224,7 +224,7 @@ class PrescreverMedicamento(endpoints.InstanceEndpoint[Atendimento]):
         return super().post()
     
     def check_permission(self):
-        return self.instance.is_agendado() and self.check_role('ps')
+        return self.instance.is_agendado() and self.check_role('ps') and self.instance.is_envolvido(self.request.user)
 
 
 class RegistrarEcanminhamentosCondutas(endpoints.InstanceEndpoint[Atendimento]):
@@ -270,7 +270,7 @@ class RegistrarEcanminhamentosCondutas(endpoints.InstanceEndpoint[Atendimento]):
         self.redirect(f'/api/atendimento/view/{self.instance.id}/')
 
     def check_permission(self):
-        return self.instance.is_agendado() and self.check_role('ps')
+        return self.instance.is_agendado() and self.check_role('ps') and self.instance.is_envolvido(self.request.user)
 
 
 class AnexarArquivo(endpoints.ChildEndpoint):
@@ -288,9 +288,7 @@ class AnexarArquivo(endpoints.ChildEndpoint):
             self.source.is_agendado()
             and (
                 self.request.GET.get('token') == self.source.token
-                or self.request.user.username == self.source.paciente.cpf
-                or self.request.user.username == self.source.profissional.pessoa_fisica.cpf
-                or self.source.especialista and self.request.user.username == self.source.especialista.pessoa_fisica.cpf
+                or self.source.is_envolvido(self.request.user)
             )
         )
 
@@ -425,4 +423,4 @@ class EnviarNotificacao(endpoints.ChildEndpoint):
         return super().post()
     
     def check_permission(self):
-        return self.source.is_agendado() and self.check_role('ps')
+        return self.source.is_agendado() and self.check_role('ps') and self.source.is_envolvido(self.request.user)

@@ -82,7 +82,8 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
         if pessoa_fisica is None:
             pessoa_fisica = self.instance.paciente
         mensagem = '{} acessou a sala virtual.'.format(pessoa_fisica.nome)
-        self.instance.enviar_notificacao(mensagem, remetente=pessoa_fisica)
+        if not self.instance.notificacao_set.filter(mensagem=mensagem).exists():
+            self.instance.enviar_notificacao(mensagem, remetente=pessoa_fisica)
 
         return (
             self.serializer().actions('atendimento.anexararquivo', 'atendimento.emitiratestado', 'atendimento.solicitarexames', 'atendimento.prescrevermedicamento')
@@ -95,8 +96,7 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
         return (
             self.instance.is_agendado()
             and (
-                self.check_role('ps')
-                or self.instance.paciente.cpf == self.request.user.username
+                self.instance.is_envolvido(self.request.user)
                 or self.request.GET.get('token') == self.instance.token
             )
         )

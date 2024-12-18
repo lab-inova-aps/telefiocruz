@@ -908,6 +908,11 @@ class Atendimento(models.Model):
         verbose_name = "Atendimento"
         verbose_name_plural = "Atendimentos"
 
+    def is_envolvido(self, user):
+        return user.is_superuser or (user.username and user.username in Atendimento.objects.filter(pk=self.pk).values_list(
+            'paciente__cpf', 'profissional__pessoa_fisica__cpf', 'especialista__pessoa_fisica__cpf'
+        ).first())
+
     def get_envolvidos(self, paciente=True, profissional=True, especialista=True):
         envolvidos = []
         if paciente:
