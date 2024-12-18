@@ -79,6 +79,8 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
             self.instance.save()
 
         pessoa_fisica = PessoaFisica.objects.filter(cpf=self.request.user.username).first()
+        if pessoa_fisica is None:
+            pessoa_fisica = self.instance.paciente
         mensagem = '{} acessou a sala virtual.'.format(pessoa_fisica.nome)
         self.instance.enviar_notificacao(mensagem, remetente=pessoa_fisica)
 
