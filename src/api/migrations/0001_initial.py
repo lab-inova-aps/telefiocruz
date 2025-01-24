@@ -182,8 +182,8 @@ class Migration(migrations.Migration):
                 ('nome_responsavel', slth.db.models.CharField(blank=True, max_length=80, null=True, verbose_name='Nome do Responsável')),
                 ('cpf_responsavel', slth.db.models.CharField(blank=True, max_length=14, null=True, verbose_name='CPF do Responsável')),
                 ('email', slth.db.models.CharField(blank=True, max_length=255, null=True, verbose_name='E-mail')),
-                ('telefone', slth.db.models.CharField(blank=True, max_length=255, null=True, verbose_name='Telefone')),
-                ('municipio', slth.db.models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, to='api.municipio', verbose_name='Município')),
+                ('telefone', slth.db.models.CharField(blank=False, max_length=255, null=True, verbose_name='Telefone')),
+                ('municipio', slth.db.models.ForeignKey(blank=False, null=True, on_delete=django.db.models.deletion.PROTECT, to='api.municipio', verbose_name='Município')),
             ],
             options={
                 'verbose_name': 'Pessoa Física',

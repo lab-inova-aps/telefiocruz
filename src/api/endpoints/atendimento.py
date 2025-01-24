@@ -101,6 +101,7 @@ class Add(endpoints.AddEndpoint[Atendimento]):
     
     def post(self):
         self.instance.enviar_notificacao(mensagem="Atendimento agendado. Leia atentamente as informações abaixo e acesse o link no dia/hora marcados.")
+        self.instance.agendar_notificacao()
         return self.redirect('/api/atendimento/view/{}/'.format(self.instance.pk))
 
 
@@ -239,10 +240,22 @@ class RegistrarEcanminhamentosCondutas(endpoints.InstanceEndpoint[Atendimento]):
         if 'cid' in form.fields:
             form.fields['cid'].initial = self.instance.cid.all()
             form.fields['ciap'].initial = self.instance.ciap.all()
+            ultimo_encaminhamento = EncaminhamentosCondutas.objects.filter(
+            atendimento__paciente=self.instance.paciente, responsavel=self.get_responsavel()
+            ).exclude(atendimento=self.instance).order_by('-data').first()
+            if ultimo_encaminhamento:
+                data_hora = ultimo_encaminhamento.data.strftime("%d/%m/%Y %H:%M")
+                form.fields['subjetivo'].help_text = f"{data_hora}: {ultimo_encaminhamento.subjetivo}"
+                form.fields['objetivo'].help_text = f"{data_hora}: {ultimo_encaminhamento.objetivo}"
+                form.fields['avaliacao'].help_text = f"{data_hora}: {ultimo_encaminhamento.avaliacao}"
+                form.fields['plano'].help_text = f"{data_hora}: {ultimo_encaminhamento.plano}"
         return form
+    
+    def get_responsavel(self):
+        return self.instance.profissional if self.instance.profissional.is_user(self.request.user) else self.instance.especialista
 
     def get(self):
-        responsavel = self.instance.profissional if self.instance.profissional.is_user(self.request.user) else self.instance.especialista
+        responsavel = self.get_responsavel()
         instance = EncaminhamentosCondutas.objects.filter(
             atendimento=self.instance, responsavel=responsavel
         ).first()
@@ -388,15 +401,16 @@ class FinalizarAtendimento(endpoints.ChildEndpoint):
 
 
 class Publico(endpoints.PublicEndpoint):
-    concordo = forms.BooleanField(label='Concordo e aceito os termo acima apresentados')
     
     class Meta:
         modal = False
         verbose_name = None
+        submit_label = 'Aceitar termo e iniciar'
+        submit_icon = 'thumbs-up'
 
     def get(self):
-        atendimento = Atendimento.objects.get(token=self.request.GET.get('token'))
-        return self.formfactory(atendimento).fields('concordo').display(None, ('get_termo_consentimento_digital',))
+        atendimento = Atendimento.objects.filter(token=self.request.GET.get('token')).order_by('id').last()
+        return self.formfactory(atendimento).fields().display(None, ('get_termo_consentimento_digital',))
    
     def post(self):
         atendimento = Atendimento.objects.get(token=self.request.GET.get('token'))
@@ -405,6 +419,17 @@ class Publico(endpoints.PublicEndpoint):
         if not atendimento.get_anexos().filter(nome='Termo de Consentimento').exists():
             atendimento.criar_anexo('Termo de Consentimento', 'documentos/termo.html', atendimento.paciente.cpf, {})
         self.redirect('/api/salaespera/?token={}'.format(self.request.GET.get('token')))
+
+
+class Confirmacao(endpoints.PublicEndpoint):
+    class Meta:
+        verbose_name = 'Confirmação de Atendimento'
+
+    def get(self):
+        atendimento = Atendimento.objects.filter(token=self.request.GET.get('token')).order_by('id').last()
+        atendimento.data_hora_confirmacao = datetime.now()
+        atendimento.save()
+        return self.render(dict(atendimento=atendimento))
 
 
 class EnviarNotificacao(endpoints.ChildEndpoint):

@@ -17,7 +17,7 @@ from slth.pdf import PdfWriter
 from django.core.cache import cache
 from django.core.files.base import ContentFile
 from slth.db import models, meta, role
-from slth.models import User, RoleFilter
+from slth.models import User, RoleFilter, WhatsappNotification
 from slth.components import Scheduler, FileLink, Image, Map, Text, Badge, TemplateContent
 from slth.printer import qrcode_base64
 from django.core import signing
@@ -239,13 +239,13 @@ class PessoaFisica(models.Model):
     nome = models.CharField(verbose_name='Nome', max_length=80)
     nome_social = models.CharField(verbose_name='Nome Social', max_length=80, null=True, blank=True)
     cpf = models.CharField(verbose_name='CPF', max_length=14, unique=True)
-    telefone = models.CharField(verbose_name='Telefone', max_length=15, blank=True, null=True)
+
     endereco = models.CharField(verbose_name='Endereço', max_length=255, blank=True, null=True)
     numero = models.CharField(verbose_name='Número', max_length=255, blank=True, null=True)
     cep = models.CharField(verbose_name='CEP', max_length=255, blank=True, null=True)
     bairro = models.CharField(verbose_name='Bairro', max_length=255, blank=True, null=True)
     complemento = models.CharField(verbose_name='Complemento', max_length=150, blank=True, null=True)
-    municipio = models.ForeignKey(Municipio, verbose_name='Município', null=True, on_delete=models.PROTECT, blank=True)
+    municipio = models.ForeignKey(Municipio, verbose_name='Município', null=True, on_delete=models.PROTECT, blank=False)
     data_nascimento = models.DateField(verbose_name='Data de Nascimento', null=True)
     cns = models.CharField(verbose_name='CNS', max_length=15, null=True, blank=True)
 
@@ -255,7 +255,7 @@ class PessoaFisica(models.Model):
     cpf_responsavel = models.CharField(verbose_name='CPF do Responsável', max_length=14, null=True, blank=True)
 
     email = models.CharField(verbose_name='E-mail', null=True, blank=True)
-    telefone = models.CharField(verbose_name='Telefone', null=True, blank=True)
+    telefone = models.CharField(verbose_name='Telefone', null=True, blank=False)
 
     objects = PessoaFisicaQueryset()
 
@@ -898,6 +898,7 @@ class Atendimento(models.Model):
     motivo_reagendamento = models.TextField(verbose_name='Motivo do Reagendamento', null=True)
 
     token = models.CharField(verbose_name='Token', null=True, blank=True)
+    data_hora_confirmacao = models.DateTimeField(verbose_name='Data/Hora da Confirmação', null=True)
     
     emails = models.ManyToManyField(Email, verbose_name='E-mails', blank=True)
 
@@ -925,9 +926,10 @@ class Atendimento(models.Model):
     
     @meta('Notificações')
     def get_notificacoes(self):
-        return self.notificacao_set.ignore('atendimento')
+        return self.notificacao_set.fields('canal', 'data_hora', 'destinatario', 'mensagem', 'get_situacao')
     
     def enviar_notificacao(self, mensagem=None, complemento=None, remetente=None):
+        data_hora_envio = datetime.now()
         for pessoa_fisica in self.get_envolvidos():
             if pessoa_fisica == remetente:
                 continue
@@ -935,33 +937,61 @@ class Atendimento(models.Model):
             fuso_horario = pessoa_fisica.municipio and pessoa_fisica.municipio.estado and pessoa_fisica.municipio.estado.fuso_horario or None
             if fuso_horario:
                 data_hora = fuso_horario.localtime(data_hora)
+            url = self.get_url_externa() if pessoa_fisica == self.paciente else self.get_url_interna()
             subject = "Telefiocruz - Notificação de Atendimento"
-            content = "<p>Notificação referente ao atendimento <b>Nº {}</b>: {}</p>".format(self.get_numero()['label'], mensagem or "")
-            content += "<p><b>Data/Hora</b>: {} ({})</p>".format(data_hora.strftime('%d/%m/%Y %H:%M'), pessoa_fisica.municipio or '')
-            content += "<p><b>Especialidade</b>: {}</p>".format(self.especialidade)
-            content += "<p><b>Profissional Responsável</b>: {}</p>".format(self.profissional)
-            if self.especialista:
-                content += "<p><b>Especialista</b>: {}</p>".format(self.especialista)
-            for k, v in (complemento or {}).items():
-                content += "<p><b>{}</b>: {}</p>".format(k, v)
-            url = self.get_url_interna()
-            if pessoa_fisica == self.paciente:
-                url = self.get_url_externa()
+            content = self.get_conteudo_notificacao_email(mensagem, complemento, data_hora, pessoa_fisica.municipio, url)
             if pessoa_fisica.email:
-                email = Email(to=pessoa_fisica.email, subject=subject, content=content, action="Acessar", url=url)
-                email.send()
-                Notificacao.objects.create(atendimento=self, data_hora=datetime.now(), canal=Notificacao.CANAL_EMAIL, mensagem=mensagem, destinatario=pessoa_fisica)
+                Email.objects.create(to=pessoa_fisica.email, subject=subject, content=content, send_at=data_hora_envio, action="Acessar", url=url)
+                Notificacao.objects.create(atendimento=self, data_hora=data_hora_envio, canal=Notificacao.CANAL_EMAIL, mensagem=mensagem, destinatario=pessoa_fisica)
             if pessoa_fisica.telefone:
-                content = "*SISTEMA TELEFIOCRUZ*\n\n"
-                content += "Notificação referente ao atendimento *nº {}*: {}\n\n".format(self.get_numero()['label'], mensagem or "")
-                content += "*Data/Hora*: {} ({})\n".format(data_hora.strftime('%d/%m/%Y %H:%M'), pessoa_fisica.municipio or '')
-                content += "*Especialidade*: {}\n".format(self.especialidade)
-                content += "*Profissional Responsável*: {}\n".format(self.profissional)
-                if self.especialista:
-                    content += "*Especialista*: {}\n\n".format(self.especialista)
-                content += "*Link de Acesso*: {}".format(self.get_url_externa())
-                whatsapp.enviar_mensagem(pessoa_fisica.telefone, content)
-                Notificacao.objects.create(atendimento=self, data_hora=datetime.now(), canal=Notificacao.CANAL_WHATSAPP, mensagem=mensagem, destinatario=pessoa_fisica)
+                # notificação do agendamento
+                content = self.get_conteudo_notificacao_whatsapp(mensagem, complemento, data_hora, pessoa_fisica.municipio, url)
+                WhatsappNotification.objects.create(pessoa_fisica.telefone, subject, content, send_at=data_hora_envio, url=url)
+                Notificacao.objects.create(atendimento=self, data_hora=data_hora_envio, canal=Notificacao.CANAL_WHATSAPP, mensagem=mensagem, destinatario=pessoa_fisica)
+    
+    def agendar_notificacao(self):
+        data_hora = self.agendado_para
+        fuso_horario = self.paciente.municipio and self.paciente.municipio.estado and self.paciente.municipio.estado.fuso_horario or None
+        if fuso_horario:
+            data_hora = fuso_horario.localtime(data_hora)
+        key = 'agendamento_notificacao_atendimento_{}'.format(self.pk)
+        subject = "Telefiocruz - Notificação de Atendimento"
+        # notificação para confirmação um dia antes
+        dia_anterior = self.agendado_para - timedelta(days=1)
+        mensagem = "Confirme sua presença clicando no link abaixo."
+        content = self.get_conteudo_notificacao_whatsapp(mensagem, {}, data_hora, self.paciente.municipio, self.get_url_confirmacao())
+        WhatsappNotification.objects.create(self.paciente.telefone, subject, content, send_at=dia_anterior, url=self.get_url_confirmacao(), key=key)
+        Notificacao.objects.create(atendimento=self, data_hora=dia_anterior, canal=Notificacao.CANAL_WHATSAPP, mensagem=mensagem, destinatario=self.paciente)
+        # notificação para acesso em uma hora
+        hora_anterior = self.agendado_para - timedelta(hours=1)
+        mensagem = "Não esqueça do seu atendimento. Acesse o link no horário marcado."
+        content = self.get_conteudo_notificacao_whatsapp(mensagem, {}, data_hora, self.paciente.municipio, self.get_url_externa())
+        WhatsappNotification.objects.create(self.paciente.telefone, subject, content, send_at=hora_anterior, url=self.get_url_externa(), key=key)
+        Notificacao.objects.create(atendimento=self, data_hora=hora_anterior, canal=Notificacao.CANAL_WHATSAPP, mensagem=mensagem, destinatario=self.paciente)
+
+    def get_conteudo_notificacao_email(self, mensagem, complemento, data_hora, municipio, url):
+        content =  "<p>Notificação referente ao atendimento <b>Nº {}</b>: {}</p>".format(self.get_numero()['label'], mensagem or "")
+        content += "<p><b>Data/Hora</b>: {} ({})</p>".format(data_hora.strftime('%d/%m/%Y %H:%M'), municipio or '')
+        content += "<p><b>Especialidade</b>: {}</p>".format(self.especialidade)
+        content += "<p><b>Profissional Responsável</b>: {}</p>".format(self.profissional)
+        if self.especialista:
+            content += "<p><b>Especialista</b>: {}</p>".format(self.especialista)
+        for k, v in (complemento or {}).items():
+                content += "<p><b>{}</b>: {}</p>".format(k, v)
+        return content
+
+    def get_conteudo_notificacao_whatsapp(self, mensagem, complemento, data_hora, municipio, url):
+        content = "*SISTEMA TELEFIOCRUZ*\n\n"
+        content += "Notificação referente ao atendimento *nº {}*: {}\n\n".format(self.get_numero()['label'], mensagem or "")
+        content += "*Data/Hora*: {} ({})\n".format(data_hora.strftime('%d/%m/%Y %H:%M'), municipio or '')
+        content += "*Especialidade*: {}\n".format(self.especialidade)
+        content += "*Profissional Responsável*: {}\n".format(self.profissional)
+        if self.especialista:
+            content += "*Especialista*: {}\n\n".format(self.especialista)
+        for k, v in (complemento or {}).items():
+                content += "*{}*: {}\n".format(k, v)
+        content += "*Link*: {}".format(url)
+        return content
 
     def formfactory(self):
         return (
@@ -1044,6 +1074,8 @@ class Atendimento(models.Model):
         tag = Badge(color, self.tipo, icon=icon)
         tags.append(tag)
         tags.append(self.get_situacao())
+        if self.data_hora_confirmacao:
+            tags.append(Badge("#5ca05d", 'Confirmado pelo Paciente', icon='person-circle-check'))
         return tags
     
     @meta('Situação')
@@ -1099,6 +1131,10 @@ class Atendimento(models.Model):
     @meta('URL Externa')
     def get_url_externa(self):
         return '{}/app/atendimento/publico/?token={}'.format(settings.SITE_URL, self.token)
+    
+    @meta('URL Confirmação')
+    def get_url_confirmacao(self):
+        return '{}/app/atendimento/confirmacao/?token={}'.format(settings.SITE_URL, self.token)
     
     @meta('URL Externa')
     def get_url_interna(self):
@@ -1171,6 +1207,7 @@ class Atendimento(models.Model):
         self.post_save()
         complemento = {'Motivo do Reagendamento': motivo}
         self.enviar_notificacao(f'Atendimento anterior de número Nº {numero} reagendado. Observe a nova data/hora e acesse o link no dia/hora marcados.', complemento)
+        self.agendar_notificacao()
         return self
     
     @transaction.atomic()
@@ -1178,12 +1215,15 @@ class Atendimento(models.Model):
         self.pk = None
         self.situacao_id = None
         self.data = None
+        self.data_hora_confirmacao = None
         self.agendado_para = data_hora
         self.motivo_reagendamento = None
         self.motivo_cancelamento = None
+        self.token = None
         self.save()
         self.post_save()
         self.enviar_notificacao('Agendamento cadastrado. Leia atentamente as informações e acesse o link no dia/hora marcados.')
+        self.agendar_notificacao()
         return self
 
     def finalizar(self, authorization_code=None):
@@ -1228,7 +1268,10 @@ class Notificacao(models.Model):
     @meta('Destinatário')
     def get_destinatario(self):
         return self.destinatario.nome
-
+    
+    @meta('Situação')
+    def get_situacao(self):
+        return "Enviada" if self.data_hora <= datetime.now() else "Agendada"
 
 
 class AnexoAtendimento(models.Model):

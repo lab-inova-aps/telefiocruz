@@ -24,6 +24,19 @@ aside .menu .item:hover{
     padding-top: 0 !important;
 }
 
+form.publico .button:first-child{
+    display: none !important;
+}
+
+form.publico .button:last-child{
+    width: 300px !important;
+    margin: auto !important;
+    display: inherit !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    background-color: #5ca05d !important;
+}
+
 
 @media (max-width: 600px) {
     

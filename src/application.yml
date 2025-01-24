@@ -4,7 +4,7 @@ application:
   subtitle: Telefiocruz - Telessaúde da Fiocruz
   icon: /static/images/icon.png
   logo: /static/images/logo.png
-  version: 1.0.5
+  version: 1.0.6
   sponsors:
     - /static/images/logos/logo4.png
   oauth: {}
