@@ -960,13 +960,13 @@ class Atendimento(models.Model):
         dia_anterior = self.agendado_para - timedelta(days=1)
         mensagem = "Confirme sua presença clicando no link abaixo."
         content = self.get_conteudo_notificacao_whatsapp(mensagem, {}, data_hora, self.paciente.municipio, self.get_url_confirmacao())
-        WhatsappNotification.objects.create(self.paciente.telefone, subject, content, send_at=dia_anterior, url=self.get_url_confirmacao(), key=key)
+        WhatsappNotification.objects.create(self.paciente.telefone, subject, content, send_at=dia_anterior, url=None, key=key)
         Notificacao.objects.create(atendimento=self, data_hora=dia_anterior, canal=Notificacao.CANAL_WHATSAPP, mensagem=mensagem, destinatario=self.paciente)
         # notificação para acesso em uma hora
         hora_anterior = self.agendado_para - timedelta(hours=1)
         mensagem = "Não esqueça do seu atendimento. Acesse o link no horário marcado."
         content = self.get_conteudo_notificacao_whatsapp(mensagem, {}, data_hora, self.paciente.municipio, self.get_url_externa())
-        WhatsappNotification.objects.create(self.paciente.telefone, subject, content, send_at=hora_anterior, url=self.get_url_externa(), key=key)
+        WhatsappNotification.objects.create(self.paciente.telefone, subject, content, send_at=hora_anterior, url=None, key=key)
         Notificacao.objects.create(atendimento=self, data_hora=hora_anterior, canal=Notificacao.CANAL_WHATSAPP, mensagem=mensagem, destinatario=self.paciente)
 
     def get_conteudo_notificacao_email(self, mensagem, complemento, data_hora, municipio, url):
@@ -1203,6 +1203,7 @@ class Atendimento(models.Model):
         self.data = None
         self.agendado_para = data_hora
         self.motivo_reagendamento = None
+        self.token = None
         self.save()
         self.post_save()
         complemento = {'Motivo do Reagendamento': motivo}

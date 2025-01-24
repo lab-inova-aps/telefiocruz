@@ -404,7 +404,7 @@ class Publico(endpoints.PublicEndpoint):
     
     class Meta:
         modal = False
-        verbose_name = None
+        verbose_name = "Público"
         submit_label = 'Aceitar termo e iniciar'
         submit_icon = 'thumbs-up'
 
