@@ -155,7 +155,7 @@ class Estatistica(endpoints.PublicEndpoint):
         return (
             Atendimento.objects
             .filters(
-                'especialidade__area', 'especialidade', 'unidade__municipio', 'unidade', 'profissional', 'especialista'
+                'especialidade__area', 'especialidade', 'profissional__unidade', 'profissional', 'especialista'
             )
             .bi(
                 ('get_total', 'get_total_profissioinais', 'get_total_pacientes'),
@@ -166,7 +166,7 @@ class Estatistica(endpoints.PublicEndpoint):
         )
     
     def check_permission(self):
-        return self.check_role('g', 'gm', 'gu')
+        return self.check_role('g', 'gm', 'gu') or not self.request.user.is_authenticated
 
 
 from .. import tasks

@@ -809,7 +809,7 @@ class AtendimentoQuerySet(models.QuerySet):
     
     @meta('Atendimentos por Unidade e Especialidade')
     def get_total_por_area_e_unidade(self):
-        return self.counter('especialidade__area__especialidade', 'unidade')
+        return self.counter('especialidade__area__especialidade', 'profissional__unidade')
     
     def agenda(self, profissional=None, especialista=None, is_teleconsulta=False, is_proprio_profissional=False, semana=1):
         selectable = []
