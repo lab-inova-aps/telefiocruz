@@ -1,7 +1,7 @@
 <img width="25" src="{{ logo }}"/>  
 <p align="right">
-    <b>Dr(a)</b> {{ atendimento.profissional.pessoa_fisica.nome }}<br>
-    <font color="gray">{{ atendimento.profissional.get_registro_profissional }}</font>
+    <b>Dr(a)</b> {{ profissional.pessoa_fisica.nome }}<br>
+    <font color="gray">{{ profissional.get_registro_profissional }}</font>
 </p>
 <br><br>
 
@@ -31,6 +31,6 @@
 
 <br><br><br><br>
 <p align="right">
-    <b>{{ atendimento.profissional.get_estabelecimento.municipio }}</b>, {{ data_hora }}
+    <b>{{ profissional.get_estabelecimento.municipio|default:profissional.pessoa_fisica.municipio }}</b>, {{ data_hora }}
 </p>
 

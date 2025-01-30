@@ -172,6 +172,7 @@ class EmitirAtestado(endpoints.InstanceEndpoint[Atendimento]):
             quantidade_dias=self.cleaned_data['quantidade_dias'],
             informar_endereco=self.cleaned_data['informar_endereco'],
             informar_cid=self.cleaned_data['informar_cid'],
+            profissional=ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
         )
         self.instance.criar_anexo('Atestado Médico', 'documentos/atestado.html', self.request.user.username, dados)
         return super().post()
@@ -192,7 +193,10 @@ class SolicitarExames(endpoints.InstanceEndpoint[Atendimento]):
         return self.formfactory().fields('tipos:tipoexame.add')
     
     def post(self):
-        dados = dict(tipos=self.cleaned_data['tipos'])
+        dados = dict(
+            tipos=self.cleaned_data['tipos'],
+            profissional=ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
+        )
         self.instance.criar_anexo('Solicitação de Exame', 'documentos/exames.html', self.request.user.username, dados)
         return super().post()
     
@@ -221,6 +225,7 @@ class PrescreverMedicamento(endpoints.InstanceEndpoint[Atendimento]):
     
     def post(self):
         dados = dict(medicamentos=[(self.cleaned_data[f'medicamento_{i}'], self.cleaned_data[f'orientacao_{i}']) for i in range(0, 10)])
+        dados.update(profissional=ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username))
         self.instance.criar_anexo('Prescrição Médica', 'documentos/prescricao.html', self.request.user.username, dados)
         return super().post()
     
