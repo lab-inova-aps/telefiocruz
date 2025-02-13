@@ -908,6 +908,7 @@ class Atendimento(models.Model):
         icon = "laptop-file"
         verbose_name = "Atendimento"
         verbose_name_plural = "Atendimentos"
+        # unique_together = ['paciente', 'agendado_para'], ['profissional', 'agendado_para'], ['especialista', 'agendado_para']
 
     def is_envolvido(self, user):
         return user.is_superuser or (user.username and user.username in Atendimento.objects.filter(pk=self.pk).values_list(

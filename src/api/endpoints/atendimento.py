@@ -341,7 +341,7 @@ class ReagendarAtendimento(endpoints.ChildEndpoint):
         return form
 
     def get(self):
-        return self.formfactory(self.source).fieldset(None, fields=('motivo_reagendamento', 'data_hora'))
+        return self.formfactory(self.source).info("Ao submeter o formulário, o sistema redirecionará para o novo atendimento agendado.").fieldset(None, fields=('tipo', 'profissional', 'especialista', 'motivo_reagendamento', 'data_hora')).hidden('tipo', 'profissional', 'especialista')
     
     def post(self):
         instance = self.source.reagendar(self.cleaned_data['data_hora'])
@@ -366,7 +366,7 @@ class RetornoAtendimento(endpoints.ChildEndpoint):
         return form
 
     def get(self):
-        return self.formfactory(self.source).fields('data_hora')
+        return self.formfactory(self.source).info("Ao submeter o formulário, o sistema redirecionará para o novo atendimento agendado.").fieldset(None, fields=('tipo', 'profissional', 'especialista', 'data_hora')).hidden('tipo', 'profissional', 'especialista')
     
     def post(self):
         instance = self.source.retorno(self.cleaned_data['data_hora'])
