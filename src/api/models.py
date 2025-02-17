@@ -4,6 +4,7 @@ import base64
 from uuid import uuid1
 from PIL import Image as PILImage
 import requests
+from django.core.exceptions import ValidationError
 from slth.models import Email, TimeZone
 from django.conf import settings
 from .signer import VidaasPdfSigner
@@ -1151,6 +1152,14 @@ class Atendimento(models.Model):
         return self.situacao_id == SituacaoAtendimento.AGENDADO
 
     def save(self, *args, **kwargs):
+        if self.pk is None:
+            qs = Atendimento.objects.filter(agendado_para=self.agendado_para, situacao_id=SituacaoAtendimento.AGENDADO)
+            if qs.filter(paciente=self.paciente).exists():
+                raise ValidationError("Já existe um agendamento marcado para o paciente no horário informado.")
+            if qs.filter(profissional=self.profissional).exists():
+                raise ValidationError("Já existe um agendamento marcado para o profissional no horário informado.")
+            if qs.filter(especialista=self.especialista).exists():
+                 raise ValidationError("Já existe um agendamento marcado para o especialista no horário informado.")
         if self.token is None:
             self.token = uuid1().hex
         if self.data is None:
