@@ -34,16 +34,15 @@ class Add(endpoints.AddEndpoint[Atendimento]):
         form.fields['profissional'].pick = True
         return form
         
-    def on_tipo_change(self, controller, values):
-        tipo = values.get('tipo')
-        controller.reload('especialidade', 'profissional', 'especialista', 'agendado_para')
+    def on_tipo_change(self, tipo):
+        self.form.controller.reload('especialidade', 'profissional', 'especialista', 'agendado_para')
         if tipo and tipo.is_teleconsulta():
-            controller.hide('especialista')
+            self.form.controller.hide('especialista')
         else:
-            controller.show('especialista')
+            self.form.controller.show('especialista')
 
-    def get_especialidade_queryset(self, queryset, values):
-        tipo = values.get('tipo')
+    def get_especialidade_queryset(self, queryset):
+        tipo = self.form.controller.get('tipo')
         if tipo:
             if self.check_role('o'):
                 return queryset
@@ -56,33 +55,33 @@ class Add(endpoints.AddEndpoint[Atendimento]):
                     return queryset.filter(pk__in=pks)
         return queryset.none()
     
-    def on_especialidade_change(self, controller, values):
-        controller.reload('profissional', 'especialista', 'agendado_para')
-        controller.set(profissional=None)
+    def on_especialidade_change(self, especialidade):
+        self.form.controller.reload('profissional', 'especialista', 'agendado_para')
+        self.form.controller.set(profissional=None)
 
-    def get_profissional_queryset(self, queryset, values):
-        tipo = values.get('tipo')
-        especialidade = values.get('especialidade')
+    def get_profissional_queryset(self, queryset):
+        tipo = self.form.controller.get('tipo')
+        especialidade = self.form.controller.get('especialidade')
         if self.check_role('ps'):
             queryset = queryset.filter(pessoa_fisica__cpf=self.request.user.username)
         if especialidade and tipo and tipo.is_teleconsulta():
             queryset = queryset.filter(especialidade=especialidade)
         return queryset
     
-    def get_especialista_queryset(self, queryset, values):
-        tipo = values.get('tipo')
-        especialidade = values.get('especialidade')
+    def get_especialista_queryset(self, queryset):
+        tipo = self.form.controller.get('tipo')
+        especialidade = self.form.controller.get('especialidade')
         if tipo and especialidade:
             if tipo.is_teleinterconsulta():
                 queryset = queryset.filter(nucleo__isnull=False, especialidade=especialidade)
             return queryset
         return queryset.none()
     
-    def on_profissional_change(self, controller, values):
-        controller.reload('agendado_para')
+    def on_profissional_change(self, profissional):
+        self.form.controller.reload('agendado_para')
     
-    def on_especialista_change(self, controller, values):
-        controller.reload('agendado_para')
+    def on_especialista_change(self, especialista):
+        self.form.controller.reload('agendado_para')
 
     def clean_agendado_para(self, cleaned_data):
         duracao = cleaned_data.get('duracao')

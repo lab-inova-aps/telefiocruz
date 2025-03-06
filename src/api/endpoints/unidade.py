@@ -20,8 +20,8 @@ class Add(endpoints.AddEndpoint[Unidade]):
     def check_permission(self):
         return self.check_role('a', 'gu')
     
-    def on_cep_change(self, controller, values):
-        controller.set(**buscar_endereco(values.get('cep')))
+    def on_cep_change(self, cep):
+        self.form.controller.set(**buscar_endereco(cep))
 
 
 class Edit(endpoints.EditEndpoint[Unidade]):
