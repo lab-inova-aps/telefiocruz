@@ -46,7 +46,7 @@ class AddProfissionalSaude(endpoints.RelationEndpoint[ProfissionalSaude]):
             .fieldset("Informações Adicionais", (("programa_provab", "programa_mais_medico"),("residente", "perceptor"),),)
         )
     
-    def get_nucleo_queryset(self, queryset, values):
+    def get_nucleo_queryset(self, queryset):
         return queryset.lookup('g', gestores__cpf='username')
     
     def check_permission(self):

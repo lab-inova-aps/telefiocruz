@@ -13,25 +13,25 @@ class Add(endpoints.AddEndpoint[PessoaFisica]):
     def check_permission(self):
         return self.check_role('g', 'o', 'a', 'ps', 'gu')
     
-    def on_cep_change(self, controller, values):
-        dados = buscar_endereco(values.get('cep'))
+    def on_cep_change(self, cep):
+        dados = buscar_endereco(cep)
         if dados:
             dados['endereco'] = dados.pop('logradouro')
-        controller.set(**dados)
+        self.form.controller.set(**dados)
 
-    def on_cpf_change(self, controller, values):
-        controller.set(**buscar_pessoafisica(values.get('cpf')))
+    def on_cpf_change(self, cpf):
+        self.form.controller.set(**buscar_pessoafisica(cpf))
 
 
 class Edit(endpoints.EditEndpoint[PessoaFisica]):
     def check_permission(self):
         return self.check_role('g', 'o', 'a', 'ps', 'gu')
     
-    def on_cep_change(self, controller, values):
-        dados = buscar_endereco(values.get('cep'))
+    def on_cep_change(self, cep):
+        dados = buscar_endereco(cep)
         if dados:
             dados['endereco'] = dados.pop('logradouro')
-        controller.set(**dados)
+        self.form.controller.set(**dados)
 
 
 class Delete(endpoints.DeleteEndpoint[PessoaFisica]):

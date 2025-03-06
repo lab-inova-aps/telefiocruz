@@ -85,8 +85,8 @@ class AlterarAgenda(endpoints.InstanceEndpoint[ProfissionalSaude]):
 
 
 class DefinirHorario(endpoints.InstanceEndpoint[ProfissionalSaude]):
-    inicio = forms.DateField(label='Início', required=False)
-    fim = forms.DateField(label='Fim', required=False)
+    inicio = forms.DateField(label='Início', required=True)
+    fim = forms.DateField(label='Fim', required=True)
     horarios = forms.SchedulerField(label='Dia/Horário', scheduler=components.Scheduler(weekly=True, chucks=3))
 
     class Meta:
