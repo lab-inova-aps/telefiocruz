@@ -52,7 +52,7 @@ class AtendimentosDoDia(endpoints.QuerySetEndpoint[Atendimento]):
         return super().get().do_dia().fields('profissional', 'assunto', 'get_agendado_para').actions('atendimento.view').lookup('p', paciente__cpf='username')
     
     def check_permission(self):
-        if self.check_role('a', 'o', 'gu', 'ou'):
+        if self.check_role('a', 'o', 'gu', 'ou', 'ps'):
             return False
         return self.check_role('p', superuser=False)
 

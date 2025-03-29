@@ -193,7 +193,7 @@ class PrimeiroAcesso(endpoints.PublicEndpoint):
         verbose_name = 'Primeiro Acesso'
 
     def get(self):
-        texto = 'Será enviada para o e-mail uma nova senha, a qual poderá ser trocada após login no sistema.'
+        texto = 'Será enviada para o e-mail cadastrado uma nova senha, a qual poderá ser trocada após login no sistema.'
         return self.formfactory().info(texto).fields(('cpf', 'data_nascimento'), 'email')
     
     def post(self):

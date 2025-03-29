@@ -6,8 +6,9 @@ class ApiApplication(Application):
         super().__init__()
         self.title = "Telefiocruz"
         self.subtitle = "Telefiocruz - Telessaúde da Fiocruz"
-        self.icon = "/static/images/icon.png"
-        self.logo = "/static/images/logo.png"
+        self.icon = "/static/images/icon.svg"
+        self.logo = "/static/images/logo.svg"
+        self.version = '1.0.7'
         self.groups.add(
             a="Administrador",
             g="Gestor de Núcleo",
@@ -74,11 +75,13 @@ class ApiApplication(Application):
                 "laptop-file:Atendimentos": "atendimento.atendimentos",
             }
         )
+        self.theme.light.primary.update(color="#265890", background="#265890")
+        self.theme.light.secondary.update(color="#071e41")
+        self.theme.light.auxiliary.update(color="#2670e8")
+        self.theme.light.info.update(color="#265890", background="#d4e5ff")
+        self.theme.light.success.update(color="#ffffff", background="#5ca05d")
+        self.theme.light.warning.update(color="#fff5c2")
+        self.theme.light.danger.update(color="#e52207")
+        self.theme.light.header.update(color="#ffffff", background="#265890")
 
-        self.theme.primary.update(color="#265890")
-        self.theme.secondary.update(color="#071e41")
-        self.theme.auxiliary.update(color="#2670e8")
-        self.theme.info.update(color="#265890", background="#d4e5ff")
-        self.theme.success.update(color="#5ca05d")
-        self.theme.warning.update(color="#fff5c2")
-        self.theme.danger.update(color="#e52207")
+        self.theme.dark.header.update(color="#0D1117", background="#90C4F9")

@@ -56,7 +56,6 @@ class CIDQuerySet(models.QuerySet):
     def all(self):
         return self.search('codigo', 'doenca')
 
-
 class CID(models.Model):
     codigo = models.CharField(verbose_name="Código", max_length=6, unique=True)
     doenca = models.CharField(verbose_name="Doença", max_length=250)
@@ -371,7 +370,7 @@ class Unidade(models.Model):
             .fieldset("Dados Gerais", ("foto", ("nome", "cnes"), 'gestores', 'operadores'))
             .fieldset("Endereço", (("cep", "bairro"), "logradouro", ("numero", "municipio")))
             .fieldset("Geolocalização", (("latitude", "longitude"), 'get_mapa'))
-            .queryset("Profissionais de Saúde", 'get_profissionais_saude')
+            .queryset('get_profissionais_saude')
         )
 
     def formfactory(self):
@@ -438,8 +437,8 @@ class Nucleo(models.Model):
             .serializer().actions('nucleo.edit')
             .fieldset("Dados Gerais", ("nome", 'gestores', 'operadores'))
             .group('Detalhamento')
-                .queryset('Unidades Atendidas', 'get_unidades')
-                .queryset('Profissionais de Saúde', 'get_profissionais_saude')
+                .queryset('get_unidades')
+                .queryset('get_profissionais_saude')
             .parent()
         )
     
@@ -480,7 +479,7 @@ class Nucleo(models.Model):
             scheduler.append(data_hora, text, icon='stethoscope')
         return scheduler
     
-    @meta('Unidades de Atuação')
+    @meta('Unidades Atendidas')
     def get_unidades(self):
         return self.unidades.all().actions('unidade.view', 'unidade.edit')
     
@@ -571,11 +570,11 @@ class ProfissionalSaude(models.Model):
     def get_horarios_ocupados(self, semana=1):
         horarios_ocupados = {}
         midnight = datetime.combine(datetime.now().date(), time())
-        qs_teleconsultor = HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=self.pessoa_fisica, atendimentos_profissional_saude__situacao=SituacaoAtendimento.AGENDADO)
+        qs_teleconsultor = HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=self.pessoa_fisica, atendimentos_profissional_saude__situacao__in=(SituacaoAtendimento.AGENDADO, SituacaoAtendimento.FINALIZADO))
         qs_teleconsultor = qs_teleconsultor.da_semana(semana).values_list('data_hora', 'atendimentos_profissional_saude').order_by('-data_hora')
         for data_hora, pk in qs_teleconsultor:
             horarios_ocupados[data_hora] = pk
-        qs_teleinterconsultor = HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=self.pessoa_fisica, atendimentos_especialista__situacao=SituacaoAtendimento.AGENDADO)
+        qs_teleinterconsultor = HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=self.pessoa_fisica, atendimentos_especialista__situacao__in=(SituacaoAtendimento.AGENDADO, SituacaoAtendimento.FINALIZADO))
         qs_teleinterconsultor = qs_teleinterconsultor.da_semana(semana).values_list('data_hora', 'atendimentos_especialista').order_by('-data_hora')
         for data_hora, pk in qs_teleinterconsultor:
             horarios_ocupados[data_hora] = pk
@@ -808,9 +807,13 @@ class AtendimentoQuerySet(models.QuerySet):
     def get_total_por_mes(self):
         return self.counter('agendado_para__month', chart='line')
     
+    @meta('Atendimentos por Unidade')
+    def get_total_por_unidade(self):
+        return self.filter(profissional__unidade__isnull=False).counter('profissional__unidade', chart='column')
+
     @meta('Atendimentos por Unidade e Especialidade')
     def get_total_por_area_e_unidade(self):
-        return self.counter('especialidade__area__especialidade', 'profissional__unidade')
+        return self.counter('especialidade__area', 'profissional__unidade')
     
     def agenda(self, profissional=None, especialista=None, is_teleconsulta=False, is_proprio_profissional=False, semana=1):
         selectable = []
@@ -948,7 +951,7 @@ class Atendimento(models.Model):
             if pessoa_fisica.telefone:
                 # notificação do agendamento
                 content = self.get_conteudo_notificacao_whatsapp(mensagem, complemento, data_hora, pessoa_fisica.municipio, url)
-                WhatsappNotification.objects.create(pessoa_fisica.telefone, subject, content, send_at=data_hora_envio, url=url)
+                WhatsappNotification.objects.create(pessoa_fisica.telefone, subject, content, send_at=data_hora_envio)
                 Notificacao.objects.create(atendimento=self, data_hora=data_hora_envio, canal=Notificacao.CANAL_WHATSAPP, mensagem=mensagem, destinatario=pessoa_fisica)
     
     def agendar_notificacao(self):
@@ -1012,7 +1015,7 @@ class Atendimento(models.Model):
             super()
             .serializer()
             .fields('get_tags')
-            .actions('atendimento.enviarnotificacao', 'atendimento.anexararquivo', 'salavirtual', 'atendimento.emitiratestado', 'atendimento.solicitarexames', 'atendimento.prescrevermedicamento', 'atendimento.registrarecanminhamentoscondutas', 'atendimento.reagendaratendimento', 'atendimento.cancelaratendimento', 'atendimento.retornoatendimento', 'atendimento.finalizaratendimento')
+            .actions('atendimento.enviarnotificacao', 'atendimento.anexararquivo', 'salavirtual', 'atendimento.emitiratestado', 'atendimento.solicitarexames', 'atendimento.prescrevermedicamento', 'atendimento.registrarecanminhamentoscondutas', 'atendimento.reagendaratendimento', 'atendimento.cancelaratendimento', 'atendimento.retornoatendimento', 'atendimento.finalizaratendimento', 'atendimento.delete')
             .fieldset(
                 "Dados Gerais",
                 (
@@ -1048,11 +1051,11 @@ class Atendimento(models.Model):
                             ("pessoa_fisica__nome", "get_registro_profissional", "get_registro_especialista"),
                         ), attr="especialista", condition='especialista'
                     )
-                    .queryset('Anexos', 'get_anexos')
+                    .queryset('get_anexos')
                     .fieldset('Outras Informações', ("motivo_cancelamento", "motivo_reagendamento"))
                 .parent()
-                .queryset('Encaminhamentos', 'get_condutas_ecaminhamentos', roles=('ps',))
-                .queryset('Notificações', 'get_notificacoes')
+                .queryset('get_condutas_ecaminhamentos', roles=('ps',))
+                .queryset('get_notificacoes')
             .parent()
         )
     
@@ -1093,7 +1096,7 @@ class Atendimento(models.Model):
     
     @meta('Anexos')
     def get_anexos(self):
-        return self.anexoatendimento_set.fields('get_nome_arquivo', 'autor', 'assinaturas', 'get_arquivo')
+        return self.anexoatendimento_set.fields('get_nome_arquivo', 'autor', 'assinaturas', 'get_arquivo').actions('anexoatendimento.enviar', 'anexoatendimento.baixar')
     
     @meta('Anexos')
     def get_anexos_webconf(self):
@@ -1190,7 +1193,7 @@ class Atendimento(models.Model):
         AnexoAtendimento.objects.filter(atendimento=self, nome=nome).delete()
         autor = PessoaFisica.objects.get(cpf=cpf)
         anexo = AnexoAtendimento(atendimento=self, autor=autor, nome=nome)
-        dados.update(atendimento=self, data_hora=date.today(), logo=f'{settings.SITE_URL}/static/images/icon-black.svg')
+        dados.update(atendimento=self, data_hora=date.today(), logo=f'http://localhost:8000/static/images/icon-black.svg')
         writter = PdfWriter()
         writter.render(template, dados)
         anexo.arquivo.save('{}.pdf'.format(uuid1().hex), ContentFile(writter.pdf.output()))
@@ -1300,6 +1303,22 @@ class AnexoAtendimento(models.Model):
 
     def __str__(self):
         return "%s" % self.atendimento
+    
+    def is_valid(self, token):
+        if token and ':' in token:
+            data = datetime.strptime(signing.loads(token), "%d/%m/%Y")
+            return data >= datetime.now()
+        return False
+
+    def enviar(self):
+        token = signing.dumps((datetime.now()+timedelta(days=1)).strftime("%d/%m/%Y"))
+        url = '{}/api/anexoatendimento/baixar/{}/?token={}'.format(settings.SITE_URL, self.pk, token)
+        title = 'Telefiocruz - {}'.format(self.nome)
+        content = f'Clique no link abaixo para realizar o download do arquivo "{self.nome}" relacionado ao seu teleatendimento.\n Importante: O link tem validade de apenas um dia.'
+        if self.atendimento.paciente.telefone:
+            WhatsappNotification.objects.create(self.atendimento.paciente.telefone, title, content, send_at=datetime.now(), url=url)
+        if self.atendimento.paciente.email:
+            Email(to=self.atendimento.paciente.email, subject=title, content=content, action="Baixar", url=url).send()
 
     @meta('Nome do Arquivo')
     def get_nome_arquivo(self):

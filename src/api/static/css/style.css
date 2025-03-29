@@ -1,6 +1,6 @@
 header, header ul, header input, header .fa-solid {
-    background-color: #265890 !important;
-    color: white !important;
+    background-color: var(--header-background) !important;
+    color: var(--header-color) !important;
 }
 header .brand span{
     display: none;

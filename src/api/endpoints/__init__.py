@@ -87,9 +87,9 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
 
         return (
             self.serializer().actions('atendimento.anexararquivo', 'atendimento.emitiratestado', 'atendimento.solicitarexames', 'atendimento.prescrevermedicamento')
-            .endpoint('VideoChamada', 'videochamada', wrap=False)
-            .queryset('Anexos', 'get_anexos_webconf')
-            .endpoint('Condutas e Encaminhamentos', 'atendimento.registrarecanminhamentoscondutas', wrap=False)
+            .endpoint('videochamada', wrap=False)
+            .queryset('get_anexos_webconf')
+            .endpoint('atendimento.registrarecanminhamentoscondutas', wrap=False)
         )
     
     def check_permission(self):
@@ -155,13 +155,13 @@ class Estatistica(endpoints.PublicEndpoint):
         return (
             Atendimento.objects
             .filters(
-                'especialidade__area', 'especialidade', 'profissional__unidade', 'profissional', 'especialista'
+                'agendado_para__year', 'tipo', 'especialidade__area', 'especialidade', 'profissional__unidade', 'profissional', 'especialista', 'situacao'
             )
             .bi(
                 ('get_total', 'get_total_profissioinais', 'get_total_pacientes'),
                 ('get_total_por_tipo', 'get_total_por_situacao', 'get_total_por_area'),
-                'get_total_por_mes',
-                'get_total_por_area_e_unidade'
+                'get_total_por_mes', 'get_total_por_unidade',
+                'get_total_por_area_e_unidade', get_total_por_mes='agendado_para__year'
             )
         )
     

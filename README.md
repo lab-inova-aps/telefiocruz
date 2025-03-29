@@ -28,3 +28,6 @@ python manage.py dumpdata auth.user comum.CategoriaProfissional comum.CID comum.
 Especialidade.objects.filter(profissionalsaude__isnull=True).delete()
 ```
 
+
+POSTGRES_DB=telefiocruz
+export POSTGRES_HOST=localhost

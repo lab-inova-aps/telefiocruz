@@ -12,6 +12,9 @@ class Atendimentos(endpoints.ListEndpoint[Atendimento]):
     def check_permission(self):
         return self.check_role('a', 'g')
     
+    def get(self):
+        return super().get().xlsx('tipo', 'paciente__cpf', 'paciente__nome', 'profissional', 'especialista', 'especialidade', 'agendado_para', 'assunto')
+    
     def contribute(self, entrypoint):
         if entrypoint == 'menu':
             return not self.check_role('g', superuser=False)
@@ -157,7 +160,7 @@ class EmitirAtestado(endpoints.InstanceEndpoint[Atendimento]):
 
     
     class Meta:
-        icon = 'file'
+        icon = 'file-medical'
         modal = True
         verbose_name = 'Emitir Atestado'
 
@@ -184,7 +187,7 @@ class SolicitarExames(endpoints.InstanceEndpoint[Atendimento]):
     tipos = forms.ModelMultipleChoiceField(TipoExame.objects)
     
     class Meta:
-        icon = 'file'
+        icon = 'file-waveform'
         modal = True
         verbose_name = 'Solicitar Exames'
 
@@ -206,7 +209,7 @@ class SolicitarExames(endpoints.InstanceEndpoint[Atendimento]):
 class PrescreverMedicamento(endpoints.InstanceEndpoint[Atendimento]):
     
     class Meta:
-        icon = 'file'
+        icon = 'file-signature'
         modal = True
         verbose_name = 'Prescrever'
 
@@ -237,7 +240,7 @@ class RegistrarEcanminhamentosCondutas(endpoints.InstanceEndpoint[Atendimento]):
     ciap = forms.ModelMultipleChoiceField(CIAP.objects.all(), label='CIAP', required=False)
 
     class Meta:
-        icon = 'file-signature'
+        icon = 'file-export'
         verbose_name = 'Registrar Encaminhamento'
 
     def getform(self, form):
@@ -273,6 +276,7 @@ class RegistrarEcanminhamentosCondutas(endpoints.InstanceEndpoint[Atendimento]):
             .fieldset('Dados Gerais', (('cid', 'ciap'),))
             .fieldset('Método SOAP', ('subjetivo', 'objetivo', 'avaliacao', 'plano'))
             .fieldset('Outras Informações', ('comentario',))# 'encaminhamento', 'conduta'
+            .info('Os dados registrados abaixo serão salvos automaticamente a cada minuto. Clique no botão "Enviar" apenas quando concluir a video-chamada e quiser retornar para a página de visualização do atendimento.' if "/registrarecanminhamentoscondutas/" not in self.request.path else None)
         )
     
     def post(self):
@@ -383,7 +387,12 @@ class FinalizarAtendimento(endpoints.ChildEndpoint):
         verbose_name = 'Finalizar Atendimento'
 
     def get(self):
-        return self.formfactory(self.source).image('/static/images/signature.png').fields('tipo_assinatura', finalizado_em=datetime.now())
+        return (
+            self.formfactory(self.source)
+            .info('Caso não deseje assinar digitalmente os documentos com o aplicativo VIDAAS, apenas clique no botão "Enviar".')
+            .image('/static/images/signature.png')
+            .fields('tipo_assinatura', finalizado_em=datetime.now())
+        )
     
     def post(self):
         super().post()
