@@ -10,22 +10,17 @@ class Command(BaseCommand):
         with transaction.atomic():
             estado = Estado.objects.get_or_create(codigo=50, defaults=dict(sigla='MS', nome='Mato Grosso do Sul'))[0]
             municipio = Municipio.objects.get_or_create(codigo=5003702, nome='Dourados', estado=estado)[0]
-            with open('profissionais.csv') as file:
+            with open('profissionais2.csv') as file:
+                line = file.readline()
                 line = file.readline()
                 while line:
-                    tokens = line.strip().split(';')
-                    nome, cpf, sexo, data_nascimento, email, registro, unidade, especialidade, extra = tokens
+                    print(line.strip().split(';'))
+                    nome, cpf, sexo, data_nascimento, email, telefone, numero_registro, sigla_conselho, especialidade, unidade = line.strip().split(';')
                     sexo = Sexo.objects.get(nome=sexo)
                     data_nascimento = datetime.strptime(data_nascimento, "%d/%m/%Y")
-                    numero_registro, sigla_conselho = registro.split()
-                    print(cpf, nome)
-                    conselho = ConselhoClasse.objects.get_or_create(sigla=sigla_conselho, estado=estado)[0]
-                    area = especialidade.split()[0]
-                    area = Area.objects.get_or_create(nome=area)[0]
-                    if especialidade == 'Medicina':
-                        especialidade = 'Clínica Geral'
-                    especialidade = Especialidade.objects.get_or_create(nome=especialidade, area=area, defaults=dict(cbo='00'))[0]
-                    pessoa_fisica = PessoaFisica.objects.get_or_create(cpf=cpf, defaults=dict(nome=normalizar_nome(nome), email=email, sexo=sexo, data_nascimento=data_nascimento))[0]
+                    conselho = ConselhoClasse.objects.get(sigla=sigla_conselho)
+                    especialidade = Especialidade.objects.get(id=especialidade)
+                    pessoa_fisica = PessoaFisica.objects.get_or_create(cpf=cpf, defaults=dict(nome=normalizar_nome(nome), email=email, telefone=telefone, sexo=sexo, data_nascimento=data_nascimento))[0]
                     unidade = Unidade.objects.get_or_create(nome=unidade, defaults=dict(municipio=municipio))[0]
                     ProfissionalSaude.objects.get_or_create(
                         pessoa_fisica=pessoa_fisica, unidade=unidade, especialidade=especialidade,

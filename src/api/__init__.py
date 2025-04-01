@@ -20,6 +20,7 @@ class ApiApplication(Application):
             s="Supervisor",
         )
         self.dashboard.usermenu.add(
+            "profile.userprofile",
             "dev.icons",
             "user.users",
             "log.logs",
