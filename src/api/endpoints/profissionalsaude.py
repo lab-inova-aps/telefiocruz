@@ -148,7 +148,7 @@ class Vinculos(endpoints.ListEndpoint[ProfissionalSaude]):
         verbose_name= 'Meus Vínculos'
     
     def get(self):
-        vinculos = super().get().search().filters().filter(pessoa_fisica__cpf=self.request.user).fields('get_estabelecimento', 'especialidade').actions("profissionalsaude.alteraragenda", "profissionalsaude.horariosatendimento")
+        vinculos = super().get().search().filters().filter(pessoa_fisica__cpf=self.request.user).fields('get_estabelecimento', 'especialidade', 'ativo').actions("profissionalsaude.alteraragenda", "profissionalsaude.horariosatendimento")
         vinculos.metadata['search'].clear()
         return vinculos
 

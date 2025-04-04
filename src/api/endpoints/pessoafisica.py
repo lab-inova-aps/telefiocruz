@@ -72,7 +72,7 @@ class HistoricoPaciente(endpoints.ViewEndpoint[PessoaFisica]):
         verbose_name = 'Detalhe e Histórico do Paciente'
 
     def get(self):
-        return super().get().queryset('Histórico de Atendimentos', 'get_atendimentos')
+        return super().get().queryset('get_atendimentos')
 
     def check_permission(self):
         return self.check_role('ps')

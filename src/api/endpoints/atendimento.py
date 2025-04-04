@@ -51,10 +51,10 @@ class Add(endpoints.AddEndpoint[Atendimento]):
                 return queryset
             elif self.check_role('ps'):
                 if tipo.is_teleconsulta():
-                    vinculos = ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username)
+                    vinculos = ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username).filter(ativo=True)
                     return queryset.filter(pk__in=vinculos.values_list('especialidade', flat=True).distinct())
                 else:
-                    pks = ProfissionalSaude.objects.filter(nucleo__isnull=False).values_list('especialidade', flat=True).distinct()
+                    pks = ProfissionalSaude.objects.filter(nucleo__isnull=False).values_list('especialidade', flat=True).filter(ativo=True).distinct()
                     return queryset.filter(pk__in=pks)
         return queryset.none()
     
@@ -69,7 +69,7 @@ class Add(endpoints.AddEndpoint[Atendimento]):
             queryset = queryset.filter(pessoa_fisica__cpf=self.request.user.username)
         if especialidade and tipo and tipo.is_teleconsulta():
             queryset = queryset.filter(especialidade=especialidade)
-        return queryset
+        return queryset.filter(ativo=True)
     
     def get_especialista_queryset(self, queryset):
         tipo = self.form.controller.get('tipo')

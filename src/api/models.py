@@ -491,7 +491,7 @@ class ProfissionalSaudeQueryset(models.QuerySet):
         return (
             self.search("pessoa_fisica__nome", "pessoa_fisica__cpf")
             .filters("nucleo", "unidade", "especialidade",)
-            .fields("get_estabelecimento", "especialidade")
+            .fields("get_estabelecimento", "especialidade", "ativo")
             .actions('profissionalsaude.definirhorario', 'profissionalsaude.alteraragenda')
         ).cards()
 
@@ -522,7 +522,7 @@ class ProfissionalSaude(models.Model):
     residente = models.BooleanField(verbose_name='Residente', default=False)
     perceptor = models.BooleanField(verbose_name='Perceptor', default=False)
     
-    ativo = models.BooleanField(default=False)
+    ativo = models.BooleanField(default=True)
     # Atenção primária
     unidade = models.ForeignKey(Unidade, verbose_name='Unidade', null=True, on_delete=models.CASCADE)
     # Teleatendimento
@@ -591,6 +591,10 @@ class ProfissionalSaude(models.Model):
 
     def is_user(self, user):
         return self.pessoa_fisica.cpf == user.username
+    
+    @meta('Ativo')
+    def get_ativo(self):
+        return Badge('#5ca05d' if self.ativo else "red", "Sim" if self.ativo else "Não")
 
     def formfactory(self):
         return (
@@ -604,6 +608,7 @@ class ProfissionalSaude(models.Model):
             .formfactory()
             .fieldset("Dados Profissionais", ("especialidade", ("conselho_profissional", "registro_profissional"), ("conselho_especialista", "registro_especialista"),),)
             .fieldset("Informações Adicionais", (("programa_provab", "programa_mais_medico"), ("residente", "perceptor"),),)
+            .fieldset("Situação", ('ativo',))
         )
 
 
