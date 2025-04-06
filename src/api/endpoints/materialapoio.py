@@ -14,7 +14,7 @@ class MateriaisApoio(endpoints.ListEndpoint[MaterialApoio]):
         )
     
     def check_permission(self):
-        return self.check_role('ps')
+        return self.check_role('ps') and ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username, nucleo__isnull=False).exists()
 
 
 class Cadastrar(endpoints.AddEndpoint[MaterialApoio]):
