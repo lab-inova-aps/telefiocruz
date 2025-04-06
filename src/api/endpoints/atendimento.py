@@ -3,7 +3,7 @@ from slth import endpoints
 from slth import tests
 from django.forms.widgets import Textarea
 from ..models import Atendimento, Nucleo, TipoAtendimento, ProfissionalSaude, TipoExame, Medicamento, PessoaFisica, \
-    AnexoAtendimento, EncaminhamentosCondutas, Unidade, SituacaoAtendimento, CID, CIAP
+    AnexoAtendimento, EncaminhamentosCondutas, Unidade, SituacaoAtendimento, CID, CIAP, MaterialApoio
 from slth import forms
 from ..mail import send_mail
 
@@ -462,3 +462,20 @@ class EnviarNotificacao(endpoints.ChildEndpoint):
     
     def check_permission(self):
         return self.source.is_agendado() and self.check_role('ps') and self.source.is_envolvido(self.request.user)
+
+
+class InformarMateriaisApoio(endpoints.InstanceEndpoint[Atendimento]):
+
+    class Meta:
+        icon = 'file'
+        verbose_name = 'Informar Materiais de Apoio'
+
+    def get(self):
+        return self.formfactory().fields('materiais_apoio')
+    
+    def get_materiais_apoio_queryset(self, queryset):
+        return queryset.filter(pessoa_fisica__cpf=self.request.user.username)
+    
+    def check_permission(self):
+        return self.instance.is_agendado() and self.check_role('ps') and self.instance.is_envolvido(self.request.user)
+

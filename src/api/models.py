@@ -19,7 +19,7 @@ from django.core.cache import cache
 from django.core.files.base import ContentFile
 from slth.db import models, meta, role
 from slth.models import User, RoleFilter, WhatsappNotification
-from slth.components import Scheduler, FileLink, Image, Map, Text, Badge, TemplateContent
+from slth.components import Scheduler, FileLink, Image, Map, Text, Badge, TemplateContent, FileLink
 from slth.printer import qrcode_base64
 from django.core import signing
 from django.db import transaction
@@ -321,7 +321,7 @@ class PessoaFisica(models.Model):
         return None
     
     def get_atendimentos(self):
-        return self.atendimentos_paciente.all().filters('especialidade').actions('atendimento.view')
+        return self.atendimentos_paciente.all().filters('especialidade').actions('atendimento.view').order_by('-agendado_para')
 
 
 class UnidadeQuerySet(models.QuerySet):
@@ -768,6 +768,26 @@ class SituacaoAtendimento(models.Model):
         return self.nome
 
 
+class MaterialApoio(models.Model):
+    pessoa_fisica = models.ForeignKey(PessoaFisica, verbose_name='Cadastrador', on_delete=models.CASCADE)
+    nome = models.CharField(verbose_name='Nome')
+    tipo = models.CharField(verbose_name='Tipo', choices=[['arquivo', 'Arquivo'], ['url', 'URL']], pick=True)
+    url = models.CharField(verbose_name='URL', null=True, blank=True)
+    arquivo = models.FileField(verbose_name='Arquivo', upload_to='materiais', null=True, blank=True)
+    objetivo = models.TextField(verbose_name='Objetivo', null=True, blank=True)
+
+    class Meta:
+        icon = 'book-medical'
+        verbose_name = 'Materia de Apoio'
+        verbose_name_plural = 'Materiais de Apoio'
+
+    def __str__(self):
+        return self.nome
+    
+    def get_arquivo(self):
+        return FileLink(self.url or self.arquivo.url, modal=True, icon='file')
+
+
 class AtendimentoQuerySet(models.QuerySet):
     def all(self):
         return (
@@ -910,6 +930,7 @@ class Atendimento(models.Model):
     data_hora_confirmacao = models.DateTimeField(verbose_name='Data/Hora da Confirmação', null=True)
     
     emails = models.ManyToManyField(Email, verbose_name='E-mails', blank=True)
+    materiais_apoio = models.ManyToManyField(MaterialApoio, verbose_name='Materiais de Apoio', blank=True)
 
     objects = AtendimentoQuerySet()
 
@@ -1020,7 +1041,7 @@ class Atendimento(models.Model):
             super()
             .serializer()
             .fields('get_tags')
-            .actions('atendimento.enviarnotificacao', 'atendimento.anexararquivo', 'salavirtual', 'atendimento.emitiratestado', 'atendimento.solicitarexames', 'atendimento.prescrevermedicamento', 'atendimento.registrarecanminhamentoscondutas', 'atendimento.reagendaratendimento', 'atendimento.cancelaratendimento', 'atendimento.retornoatendimento', 'atendimento.finalizaratendimento', 'atendimento.delete')
+            .actions('atendimento.enviarnotificacao', 'atendimento.anexararquivo', 'salavirtual', 'atendimento.informarmateriaisapoio', 'atendimento.emitiratestado', 'atendimento.solicitarexames', 'atendimento.prescrevermedicamento', 'atendimento.registrarecanminhamentoscondutas', 'atendimento.reagendaratendimento', 'atendimento.cancelaratendimento', 'atendimento.retornoatendimento', 'atendimento.finalizaratendimento', 'atendimento.delete')
             .fieldset(
                 "Dados Gerais",
                 (
@@ -1044,7 +1065,7 @@ class Atendimento(models.Model):
                             ("sexo", "nome_social"),
                             ("data_nascimento", "get_idade"),
                             ("telefone", "email")
-                        ), attr="paciente", actions=('pessoafisica.atualizarpaciente', 'pessoafisica.historicopaciente') if self.is_agendado() else ()
+                        ), attr="paciente", actions=('pessoafisica.atualizarpaciente', 'pessoafisica.prontuariopaciente') if self.is_agendado() else ()
                     )
                     .fieldset(
                         "Profissional Responsável", (
@@ -1057,6 +1078,7 @@ class Atendimento(models.Model):
                         ), attr="especialista", condition='especialista'
                     )
                     .queryset('get_anexos')
+                    .queryset('get_materiais_apoio')
                     .fieldset('Outras Informações', ("motivo_cancelamento", "motivo_reagendamento"))
                 .parent()
                 .queryset('get_condutas_ecaminhamentos', roles=('ps',))
@@ -1102,6 +1124,10 @@ class Atendimento(models.Model):
     @meta('Anexos')
     def get_anexos(self):
         return self.anexoatendimento_set.fields('get_nome_arquivo', 'autor', 'assinaturas', 'get_arquivo').actions('anexoatendimento.enviar', 'anexoatendimento.baixar')
+    
+    @meta('Materiais de Apoio')
+    def get_materiais_apoio(self):
+        return self.materiais_apoio.fields('nome', 'objetivo', 'get_arquivo')
     
     @meta('Anexos')
     def get_anexos_webconf(self):
@@ -1514,4 +1540,5 @@ class Medicamento(models.Model):
         return (
             super().formfactory().fields('nome')
         )
+
 

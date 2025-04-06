@@ -39,6 +39,7 @@ class ApiApplication(Application):
             "profissionalsaude.definirhorarios",
             "atendimento.atendimentos",
             "atendimento.agenda",
+            "materialapoio.materiaisapoio",
             "estatistica",
             "profissionalsaude.especialistas",
         )

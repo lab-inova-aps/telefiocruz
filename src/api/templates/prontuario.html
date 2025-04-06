@@ -1,0 +1,124 @@
+{% extends "report.html" %}
+
+{% block body %}
+
+<style>
+    body{
+        font-family: Helvetica;
+    }
+    .center{
+        text-align: center;
+    }
+    .info{
+        width: 100%;
+    }
+    .info td:nth-child(odd){
+        font-weight: bold;
+        vertical-align: top;
+    }
+    .table{
+        width: 100%;
+        border-spacing: 0px;
+    }
+    .table .row:nth-child(odd){
+        background-color: #DDD;
+        line-height: 1.9rem;
+    }
+    .bg{
+        background-color: #DDD;
+    }
+</style>
+
+<h1 class="center" style="margin-bottom:5px">Prontuário Médico</h1>
+
+<h3>Dados Pessoais</h3>
+<table class="info">
+    <tr>
+        <td>Nome:</td>
+        <td>{{ obj.nome }}</td>
+        <td>CPF:</td>
+        <td>{{ obj.cpf}}</td>
+    </tr>
+    <tr>
+        <td>Sexo:</td>
+        <td>{{ obj.sexo }}</td>
+        <td>Nascimento / Idade:</td>
+        <td>{{ obj.data_nascimento|date:"d/m/Y" }} - {{ obj.get_idade }} anos</td>
+    </tr>
+    <tr>
+        <td>Telfone:</td>
+        <td>{{ obj.telefone|default:"-" }}</td>
+        <td>E-mail:</td>
+        <td>{{ obj.email|default:"-" }}</td>
+    </tr>
+    <tr>
+        <td>Endereço</td>
+        <td colspan="3">{{ obj.get_endereco|default:"-" }}</td>
+    </tr>
+</table>
+
+{% with qs=obj.get_atendimentos %}
+    <h3>Histórico de Atendimentos</h3>
+    {% if qs.exists %}
+        <table class="table">
+            <tr>
+                <th>Número</th>
+                <th class="center">Data</th>
+                <th class="center">Tipo</th>
+                <th>Profissional Responsável</th>
+                <th>Especialista</th>
+            </tr>
+            {% for a in qs %}
+                <tr class="row">
+                    <td><b>{{ a.get_numero.label }}</b></td>
+                    <td>{{ a.agendado_para|date:"d/m/Y H:i"  }}</td>
+                    <td>{{ a.tipo }}</td>
+                    <td>{{ a.profissional.pessoa_fisica.nome }}</td>
+                    <td>{% if a.especialista %}{{ a.especialista.pessoa_fisica.nome }}{% endif %}</td>
+                </tr>
+            {% endfor %}
+        </table>
+
+        <h3>Condutas e Encaminhamentos</h3>
+        {% for a in qs %}
+            <h4>{{ forloop.counter }}) {{ a.tipo }} as {{ a.agendado_para|date:"H:i"  }} de {{ a.agendado_para|date:"d/m/Y"  }} - {{ a.get_situacao.label }}</h4>
+            <p><b>{{ a.assunto }}</b>: <i>{{ a.duvida }}</i></p>
+            
+            {% for ce in a.get_condutas_ecaminhamentos %}
+            <table class="info">
+                <tr>
+                    <td style="width: 200px">Responsável:</td>
+                    <td>{{ ce.responsavel }}</td>
+                </tr>
+                <tr>
+                    <td>S - Subjetivo:</td>
+                    <td>{{ ce.subjetivo|default:"-" }}</td>
+                </tr>
+                <tr>
+                    <td>O - Objetivo:</td>
+                    <td>{{ ce.objetivo|default:"-" }}</td>
+                </tr>
+                <tr>
+                    <td>A - Avaliação:</td>
+                    <td>{{ ce.avaliacao|default:"-" }}</td>
+                </tr>
+                <tr>
+                    <td>P - Plano:</td>
+                    <td>{{ ce.plano|default:"-" }}</td>
+                </tr>
+            </table>
+                {% if not forloop.last %}
+                    <hr style="width: 50%; margin-left:auto; margin-right:auto; margin-bottom: 20px">
+                {% endif %}
+            {% endfor %}
+            <hr>
+        {% endfor %}
+
+    {% else %}
+        <p class="center">Nenhum atendimento registrado para o paciente</p>
+    {% endif %}
+
+{% endwith %}
+{% endblock %}
+
+

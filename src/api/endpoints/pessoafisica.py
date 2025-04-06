@@ -1,4 +1,5 @@
 from slth import endpoints
+from slth.components import FileViewer
 from datetime import datetime
 from ..models import PessoaFisica, Atendimento
 from ..utils import buscar_endereco, buscar_pessoafisica
@@ -66,13 +67,16 @@ class AtualizarPaciente(endpoints.EditEndpoint[PessoaFisica]):
         return self.check_role('o', 'ps')
     
 
-class HistoricoPaciente(endpoints.ViewEndpoint[PessoaFisica]):
+class ProntuarioPaciente(endpoints.InstanceEndpoint[PessoaFisica]):
     class Meta:
         icon = 'history'
-        verbose_name = 'Detalhe e Histórico do Paciente'
+        verbose_name = 'Prontuário do Paciente'
 
     def get(self):
-        return super().get().queryset('get_atendimentos')
+        if self.request.GET.get('view'):
+            return self.render(dict(obj=self.instance), "prontuario.html", pdf=True)
+        else:
+            return FileViewer(self.get_api_url(self.instance.pk) + '?view=1')
 
     def check_permission(self):
         return self.check_role('ps')
