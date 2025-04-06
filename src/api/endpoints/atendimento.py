@@ -477,5 +477,5 @@ class InformarMateriaisApoio(endpoints.InstanceEndpoint[Atendimento]):
         return queryset.filter(pessoa_fisica__cpf=self.request.user.username)
     
     def check_permission(self):
-        return self.instance.is_agendado() and self.check_role('ps') and self.instance.is_envolvido(self.request.user)
+        return self.instance.is_agendado() and self.check_role('ps') and self.instance.especialista and self.instance.especialista.pessoa_fisica.cpf == self.request.user.username
 
