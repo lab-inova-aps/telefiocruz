@@ -76,7 +76,7 @@ class ProntuarioPaciente(endpoints.InstanceEndpoint[PessoaFisica]):
         if self.request.GET.get('view'):
             return self.render(dict(obj=self.instance), "prontuario.html", pdf=True)
         else:
-            return FileViewer(self.get_api_url(self.instance.pk) + '?view=1')
+            return FileViewer(f'/api/pessoafisica/prontuariopaciente/{self.instance.pk}/?view=1')
 
     def check_permission(self):
         return self.check_role('ps')
