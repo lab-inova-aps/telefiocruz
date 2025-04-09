@@ -76,10 +76,11 @@ class ProntuarioPaciente(endpoints.InstanceEndpoint[PessoaFisica]):
         if self.request.GET.get('view'):
             return self.render(dict(obj=self.instance), "prontuario.html", pdf=True)
         else:
-            return FileViewer(f'/api/pessoafisica/prontuariopaciente/{self.instance.pk}/?view=1')
+            return FileViewer(f'/api/pessoafisica/prontuariopaciente/{self.instance.pk}/?view={self.request.user.id}')
 
     def check_permission(self):
-        return self.check_role('ps')
+        token = self.request.GET.get('view')
+        return self.check_role('ps') and (token is None or token == str(self.request.user.id))
 
 
 
