@@ -80,7 +80,7 @@ class ProntuarioPaciente(endpoints.InstanceEndpoint[PessoaFisica]):
 
     def check_permission(self):
         token = self.request.GET.get('view')
-        return self.check_role('ps') and (token is None or token == str(self.request.user.id))
+        return self.check_role('ps') or (token is None or token == str(self.request.user.id))
 
 
 
