@@ -3,6 +3,7 @@ from slth.components import FileViewer
 from datetime import datetime
 from ..models import PessoaFisica, Atendimento
 from ..utils import buscar_endereco, buscar_pessoafisica
+from django.core import signing
 
 
 class PessoasFisicas(endpoints.ListEndpoint[PessoaFisica]):
@@ -76,11 +77,10 @@ class ProntuarioPaciente(endpoints.InstanceEndpoint[PessoaFisica]):
         if self.request.GET.get('view'):
             return self.render(dict(obj=self.instance), "prontuario.html", pdf=True)
         else:
-            return FileViewer(f'/api/pessoafisica/prontuariopaciente/{self.instance.pk}/?view={self.request.user.id}')
+            return FileViewer(f'/api/pessoafisica/prontuariopaciente/{self.instance.pk}/?view={signing.dumps(self.instance.pk)}')
 
     def check_permission(self):
-        token = self.request.GET.get('view')
-        return self.check_role('ps') or (token is None or token == str(self.request.user.id))
+        return self.check_role('ps') or signing.loads(self.request.GET.get('view')) == self.instance.pk
 
 
 
