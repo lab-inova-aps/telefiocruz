@@ -166,7 +166,7 @@ class Estatistica(endpoints.PublicEndpoint):
         )
     
     def check_permission(self):
-        return self.check_role('g', 'gm', 'gu', 'ps') or not self.request.user.is_authenticated
+        return self.check_role('g', 'gm', 'gu', 'ps', 's') or not self.request.user.is_authenticated
 
 
 from .. import tasks

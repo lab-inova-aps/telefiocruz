@@ -49,7 +49,7 @@ class Especialistas(endpoints.Endpoint):
         return ProfissionalSaude.objects.filter(nucleo__isnull=False).fields('pessoa_fisica__nome', 'registro_profissional', 'especialidade', 'nucleo').actions('profissionalsaude.agenda')
 
     def check_permission(self):
-        return self.check_role('ps')
+        return self.check_role('ps', 's')
 
 
 class AlterarAgenda(endpoints.InstanceEndpoint[ProfissionalSaude]):
