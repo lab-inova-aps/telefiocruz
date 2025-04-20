@@ -86,11 +86,11 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
             self.instance.enviar_notificacao(mensagem, remetente=pessoa_fisica)
 
         return (
-            self.serializer().actions('atendimento.anexararquivo', 'atendimento.emitiratestado', 'atendimento.solicitarexames', 'atendimento.prescrevermedicamento')
+            self.serializer().actions('atendimento.visualizarprontuariopaciente', 'atendimento.anexararquivo', 'atendimento.emitiratestado', 'atendimento.solicitarexames', 'atendimento.prescrevermedicamento')
             .endpoint('videochamada', wrap=False)
             .queryset('get_anexos_webconf')
             .endpoint('atendimento.registrarecanminhamentoscondutas', wrap=False)
-        )
+        ) if not self.instance.profissional.url_webconf else self.redirect(self.instance.profissional.url_webconf)
     
     def check_permission(self):
         return (

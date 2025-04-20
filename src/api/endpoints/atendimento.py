@@ -1,11 +1,13 @@
 from datetime import datetime
 from slth import endpoints
 from slth import tests
+from slth.components import FileViewer
 from django.forms.widgets import Textarea
 from ..models import Atendimento, Nucleo, TipoAtendimento, ProfissionalSaude, TipoExame, Medicamento, PessoaFisica, \
     AnexoAtendimento, EncaminhamentosCondutas, Unidade, SituacaoAtendimento, CID, CIAP, MaterialApoio
 from slth import forms
 from ..mail import send_mail
+from django.core import signing
 
 
 class Atendimentos(endpoints.ListEndpoint[Atendimento]):
@@ -204,6 +206,22 @@ class SolicitarExames(endpoints.InstanceEndpoint[Atendimento]):
     
     def check_permission(self):
         return self.instance.is_agendado() and self.check_role('ps') and self.instance.is_envolvido(self.request.user)
+
+
+class VisualizarProntuarioPaciente(endpoints.InstanceEndpoint[Atendimento]):
+    class Meta:
+        modal = True
+        icon = 'history'
+        verbose_name = 'Prontuário do Paciente'
+
+    def get(self):
+        if self.request.GET.get('view'):
+            return self.render(dict(obj=self.instance.paciente), "prontuario.html", pdf=True)
+        else:
+            return FileViewer(f'/api/pessoafisica/prontuariopaciente/{self.instance.paciente.pk}/?view={signing.dumps(self.instance.pk)}')
+
+    def check_permission(self):
+        return self.check_role('ps') or signing.loads(self.request.GET.get('view')) == self.instance.pk
 
 
 class PrescreverMedicamento(endpoints.InstanceEndpoint[Atendimento]):
@@ -431,7 +449,10 @@ class Publico(endpoints.PublicEndpoint):
             raise endpoints.ValidationError('Atendimento finalizado.')
         if not atendimento.get_anexos().filter(nome='Termo de Consentimento').exists():
             atendimento.criar_anexo('Termo de Consentimento', 'documentos/termo.html', atendimento.paciente.cpf, {})
-        self.redirect('/api/salaespera/?token={}'.format(self.request.GET.get('token')))
+        if atendimento.profissional.url_webconf:
+            self.redirect(atendimento.profissional.url_webconf)
+        else:
+            self.redirect('/api/salaespera/?token={}'.format(self.request.GET.get('token')))
 
 
 class Confirmacao(endpoints.PublicEndpoint):

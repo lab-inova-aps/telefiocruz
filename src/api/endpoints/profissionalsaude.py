@@ -28,12 +28,12 @@ class Agenda(endpoints.InstanceEndpoint[ProfissionalSaude]):
     class Meta:
         icon = 'calendar-days'
         verbose_name = 'Visualizar Agenda'
+
     
     def get(self):
-        return self.serializer().fieldset(
-            "Dados do Profissional",
-            ("pessoa_fisica", ("nucleo", "especialidade")),
-        ).fieldset('Agenda', ('get_agenda',))
+        return self.instance.get_agenda(
+            readonly=False, semana=int(self.request.GET.get('week', 1)), url=self.request.path
+        )
     
     def check_permission(self):
         return True
@@ -50,6 +50,30 @@ class Especialistas(endpoints.Endpoint):
 
     def check_permission(self):
         return self.check_role('ps', 's')
+    
+
+class ConfigurarUrlWebconf(endpoints.Endpoint):
+    url = forms.CharField(label='URL', required=False)
+
+    class Meta:
+        modal = True
+        icon = 'users-between-lines'
+        verbose_name = 'Configurar Google Meet'
+
+    def get(self):
+        return super().formfactory().fields('url').info(
+            'Informe a URL do Google Meet que deverá ser usada para realização dos teleatendimentos. Caso deseje utilizar a ferramenta padrão de conferência da plataforma Telefiocruz, submeta o formulário sem informar esse campo.'
+        ).initial(
+            url=ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username).values_list('url_webconf', flat=True).first()
+        )
+    
+    def post(self):
+        url = self.cleaned_data['url']
+        ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username).update(url_webconf=url)
+        return super().post()
+    
+    def check_permission(self):
+        return self.check_role('ps')
 
 
 class AlterarAgenda(endpoints.InstanceEndpoint[ProfissionalSaude]):

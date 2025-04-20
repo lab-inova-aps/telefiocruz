@@ -32,6 +32,7 @@ class ApiApplication(Application):
         )
         self.dashboard.boxes.add(
             "abrirsala",
+            "profissionalsaude.configurarurlwebconf",
             "pessoafisica.pessoasfisicas",
             "nucleo.nucleos",
             "unidade.unidades",

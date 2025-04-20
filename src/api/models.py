@@ -522,6 +522,8 @@ class ProfissionalSaude(models.Model):
     residente = models.BooleanField(verbose_name='Residente', default=False)
     perceptor = models.BooleanField(verbose_name='Perceptor', default=False)
     
+    url_webconf = models.CharField(verbose_name='URL da Webconf', null=True, blank=True)
+    
     ativo = models.BooleanField(default=True)
     # Atenção primária
     unidade = models.ForeignKey(Unidade, verbose_name='Unidade', null=True, on_delete=models.CASCADE)
@@ -609,6 +611,7 @@ class ProfissionalSaude(models.Model):
             .fieldset("Dados Profissionais", ("especialidade", ("conselho_profissional", "registro_profissional"), ("conselho_especialista", "registro_especialista"),),)
             .fieldset("Informações Adicionais", (("programa_provab", "programa_mais_medico"), ("residente", "perceptor"),),)
             .fieldset("Situação", ('ativo',))
+            .fieldset("Configuração", ('url_webconf',))
         )
 
 
