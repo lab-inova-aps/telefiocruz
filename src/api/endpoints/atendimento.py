@@ -221,7 +221,7 @@ class VisualizarProntuarioPaciente(endpoints.InstanceEndpoint[Atendimento]):
             return FileViewer(f'/api/pessoafisica/prontuariopaciente/{self.instance.paciente.pk}/?view={signing.dumps(self.instance.pk)}')
 
     def check_permission(self):
-        return self.check_role('ps') or signing.loads(self.request.GET.get('view')) == self.instance.pk
+        return self.check_role('ps') or (self.request.GET.get('view') and signing.loads(self.request.GET.get('view')) == self.instance.pk)
 
 
 class PrescreverMedicamento(endpoints.InstanceEndpoint[Atendimento]):
