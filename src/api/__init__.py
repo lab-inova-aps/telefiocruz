@@ -18,6 +18,7 @@ class ApiApplication(Application):
             gu="Gestor de Unidade",
             ou="Operador de Unidade",
             s="Supervisor",
+            ag="Agendador",
         )
         self.dashboard.usermenu.add(
             "profile.userprofile",
@@ -38,7 +39,11 @@ class ApiApplication(Application):
             "unidade.unidades",
             "profissionalsaude.profissionaissaude",
             "profissionalsaude.definirhorarios",
+            "paciente.pacientes",
             "atendimento.atendimentos",
+            "atendimento.proximos",
+            "atendimento.aguardandotestedispositivo",
+            "atendimento.aguardandoconfirmacao",
             "atendimento.agenda",
             "materialapoio.materiaisapoio",
             "estatistica",
@@ -57,6 +62,7 @@ class ApiApplication(Application):
                 "user-gear:Usuários": {
                     "Administradores": "administrador.administradores",
                     "Supervisores": "supervisor.supervisores",
+                    "Agendadores": "agendador.agendadores",
                 },
                 "list:Cadastros Gerais": {
                     "CIDs": "cid.cids",

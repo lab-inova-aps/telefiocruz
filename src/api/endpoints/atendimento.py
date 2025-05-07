@@ -23,6 +23,108 @@ class Atendimentos(endpoints.ListEndpoint[Atendimento]):
         return super().contribute(entrypoint)
 
 
+class Proximos(endpoints.QuerySetEndpoint[Atendimento]):
+
+    class Meta:
+        icon = "laptop-file"
+        verbose_name = 'Próximos Atendimentos'
+    
+    def get(self):
+        return super().get().all().proximos().actions('atendimento.convidartestedispositivo', 'atendimento.confirmartestedispositivo', 'atendimento.solicitarconfirmacaopresenca', 'atendimento.confirmarpresenca', 'atendimento.cancelaratendimento').calendar("agendado_para")
+
+    def check_permission(self):
+        return self.check_role('ag')
+
+
+class AguardandoTesteDispositivo(Proximos):
+
+    class Meta:
+        icon = 'mobile-screen'
+        verbose_name = 'Aguardando Teste de Dispositivo'
+    
+    def get(self):
+        return super().get().filter(paciente__data_hora_teste_dispositivo__isnull=True)
+    
+
+class AguardandoConfirmacao(Proximos):
+
+    class Meta:
+        icon = 'person-circle-check'
+        verbose_name = 'Aguardando Confirmação'
+    
+    def get(self):
+        return super().get().filter(data_hora_confirmacao__isnull=True)
+
+
+class ConvidarTesteDispositivo(endpoints.InstanceEndpoint[Atendimento]):
+    mensagem = forms.CharField(label='Mensagem', widget=forms.Textarea())
+    class Meta:
+        icon = 'mobile-screen'
+        verbose_name = 'Convidar para Teste de Dispositivo'
+        modal = True
+
+    def getform(self, form):
+        if form and 'mensagem' in form.fields:
+            form.fields['mensagem'].help_text = self.instance.paciente.get_url_sala_teste_dispositivo()
+        return form
+
+    def get(self):
+        return (
+            self.formfactory(self.instance.paciente).fields('mensagem').initial(mensagem=self.instance.get_mensagem_whatsapp_teste_dispositvo())
+        )
+    
+    def post(self):
+        self.instance.notificar_paciente(self.cleaned_data['mensagem'])
+        return super().post()
+    
+    def check_permission(self):
+        return self.check_role('ag') and self.instance.is_agendado()
+
+
+class ConfirmarTesteDispositivo(endpoints.InstanceEndpoint[Atendimento]):
+    class Meta:
+        icon = 'check'
+        verbose_name = 'Confirmar Teste de Dispositivo'
+        modal = True
+
+    def get(self):
+        return (self.formfactory(self.instance.paciente).fields('data_hora_teste_dispositivo', 'evidencia_teste_dispositivo').initial(data_hora_teste_dispositivo=datetime.now()))
+
+    def check_permission(self):
+        return self.check_role('ag') and self.instance.is_agendado()
+
+class SolicitarConfirmacaoPresenca(endpoints.InstanceEndpoint[Atendimento]):
+    mensagem = forms.CharField(label='Mensagem', widget=forms.Textarea())
+    
+    class Meta:
+        icon = 'person-circle-check'
+        verbose_name = 'Solicitar Confirmação de Presença'
+        modal = True
+
+    def get(self):
+        return (self.formfactory(self.instance.paciente).fields('mensagem').initial(mensagem=self.instance.get_mensagem_whatsapp_confirmacao_atendimento()))
+    
+    def post(self):
+        self.instance.notificar_paciente(self.cleaned_data['mensagem'])
+        return super().post()
+    
+    def check_permission(self):
+        return self.check_role('ag') and self.instance.is_agendado()
+
+
+class ConfirmarPresenca(endpoints.InstanceEndpoint[Atendimento]):
+    class Meta:
+        icon = 'check-double'
+        verbose_name = 'Confirmar Presença'
+        modal = True
+
+    def get(self):
+        return (self.formfactory().fields('data_hora_confirmacao').initial(data_hora_confirmacao=datetime.now()))
+    
+    def check_permission(self):
+        return self.check_role('ag') and self.instance.is_agendado()
+    
+
 class Add(endpoints.AddEndpoint[Atendimento]):
 
     class Meta:
@@ -140,7 +242,7 @@ class Agenda(endpoints.QuerySetEndpoint[Atendimento]):
         )
 
     def check_permission(self):
-        return self.request.user.is_authenticated
+        return super().check_role('g', 'o', 'ou', 'ps', 'p', 's')
 
 
 class HorariosDisponiveis(endpoints.PublicEndpoint):
@@ -332,20 +434,20 @@ class AnexarArquivo(endpoints.ChildEndpoint):
         )
 
 
-class CancelarAtendimento(endpoints.ChildEndpoint):
+class CancelarAtendimento(endpoints.InstanceEndpoint[Atendimento]):
     class Meta:
         icon = 'x'
         verbose_name = 'Cancelar Atendimento'
 
     def get(self):
-        return self.formfactory(self.source).fields('motivo_cancelamento')
+        return self.formfactory(self.instance).fields('motivo_cancelamento')
     
     def post(self):
-        self.source.cancelar()
+        self.instance.cancelar()
         return super().post()
     
     def check_permission(self):
-        return self.source.is_agendado() and not self.source.get_condutas_ecaminhamentos().exists() and self.request.user.username == self.source.profissional.pessoa_fisica.cpf
+        return (self.instance.is_agendado() and not self.instance.get_condutas_ecaminhamentos().exists()) and (self.request.user.username == self.instance.profissional.pessoa_fisica.cpf or self.check_role('ag'))
 
 
 class ReagendarAtendimento(endpoints.ChildEndpoint):

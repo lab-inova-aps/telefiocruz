@@ -51,6 +51,18 @@ class Supervisor(models.Model):
     def __str__(self):
         return self.nome
 
+@role('ag', username='cpf')
+class Agendador(models.Model):
+    nome = models.CharField(verbose_name='Nome', max_length=80)
+    cpf = models.CharField(verbose_name='CPF', max_length=14, unique=True)
+
+    class Meta:
+        verbose_name = 'Agendador'
+        verbose_name_plural = 'Agendadores'
+
+    def __str__(self):
+        return self.nome
+
 
 class CIDQuerySet(models.QuerySet):
     def all(self):
@@ -229,6 +241,11 @@ class Especialidade(models.Model):
 class PessoaFisicaQueryset(models.QuerySet):
     def all(self):
         return self.search("nome", "cpf").fields("nome", "cpf").filters('municipio', papel=RoleFilter('cpf'))
+    
+    def pacientes(self):
+        pks = Atendimento.objects.order_by('paciente').values_list('paciente', flat=True).distinct()
+        return self.filter(pk__in=pks).search("nome", "telefone").fields("nome", "telefone", "get_proxima_consulta").filters('municipio')
+
 
 class PessoaFisica(models.Model):
 
@@ -256,6 +273,9 @@ class PessoaFisica(models.Model):
 
     email = models.CharField(verbose_name='E-mail', null=True, blank=True)
     telefone = models.CharField(verbose_name='Telefone', null=True, blank=False)
+
+    data_hora_teste_dispositivo = models.DateTimeField(verbose_name='Data/Hora do Teste de Dispositivo', null=True, blank=True)
+    evidencia_teste_dispositivo = models.ImageField(verbose_name='Evidência do Teste de Dispositivo', upload_to='teste_dispositvo', null=True, blank=True)
 
     objects = PessoaFisicaQueryset()
 
@@ -322,6 +342,13 @@ class PessoaFisica(models.Model):
     
     def get_atendimentos(self):
         return self.atendimentos_paciente.all().filters('especialidade').actions('atendimento.view').order_by('-agendado_para')
+    
+    @meta('Próxima Consulta')
+    def get_proxima_consulta(self):
+        return self.get_atendimentos().first()
+    
+    def get_url_sala_teste_dispositivo(self):
+        return '{}/app/abrirsala/?token={}'.format(settings.SITE_URL, self.cpf)
 
 
 class UnidadeQuerySet(models.QuerySet):
@@ -798,9 +825,18 @@ class AtendimentoQuerySet(models.QuerySet):
             .fields(
                 ("especialidade", "agendado_para", "tipo"),
                 ("get_estabelecimento", "profissional", "paciente"),
-                ("especialista", "get_duracao_prevista"), "get_tags"
+                ("especialista", "get_duracao_prevista", "get_telefone_paciente"), "get_tags"
             ).limit(5).order_by('-id')
         )
+    
+    def proximos(self):
+        inicio = date.today()
+        fim = inicio + timedelta(days=7)
+        return self.filter(agendado_para__gte=inicio, agendado_para__lte=fim).fields(
+                ("especialidade", "agendado_para", "tipo"),
+                ("get_estabelecimento", "profissional", "paciente"),
+                ("especialista", "get_duracao_prevista", "get_telefone_paciente"), "get_tags"
+            ).limit(10).order_by('id')
     
     def do_dia(self):
         midnight = datetime.combine(datetime.now().date(), time())
@@ -930,7 +966,7 @@ class Atendimento(models.Model):
     motivo_reagendamento = models.TextField(verbose_name='Motivo do Reagendamento', null=True)
 
     token = models.CharField(verbose_name='Token', null=True, blank=True)
-    data_hora_confirmacao = models.DateTimeField(verbose_name='Data/Hora da Confirmação', null=True)
+    data_hora_confirmacao = models.DateTimeField(verbose_name='Data/Hora da Confirmação', null=True, blank=True)
     
     emails = models.ManyToManyField(Email, verbose_name='E-mails', blank=True)
     materiais_apoio = models.ManyToManyField(MaterialApoio, verbose_name='Materiais de Apoio', blank=True)
@@ -962,6 +998,17 @@ class Atendimento(models.Model):
     def get_notificacoes(self):
         return self.notificacao_set.fields('canal', 'data_hora', 'destinatario', 'mensagem', 'get_situacao')
     
+    def notificar_paciente(self, mensagem=None):
+        data_hora_envio = datetime.now()
+        pessoa_fisica = self.paciente
+        data_hora = self.agendado_para
+        fuso_horario = pessoa_fisica.municipio and pessoa_fisica.municipio.estado and pessoa_fisica.municipio.estado.fuso_horario or None
+        if fuso_horario:
+            data_hora = fuso_horario.localtime(data_hora)
+        subject = "Telefiocruz - Notificação de Atendimento"
+        if pessoa_fisica.telefone:
+            WhatsappNotification.objects.create(pessoa_fisica.telefone, subject, mensagem, send_at=data_hora_envio)
+
     def enviar_notificacao(self, mensagem=None, complemento=None, remetente=None):
         data_hora_envio = datetime.now()
         for pessoa_fisica in self.get_envolvidos():
@@ -982,7 +1029,7 @@ class Atendimento(models.Model):
                 content = self.get_conteudo_notificacao_whatsapp(mensagem, complemento, data_hora, pessoa_fisica.municipio, url)
                 WhatsappNotification.objects.create(pessoa_fisica.telefone, subject, content, send_at=data_hora_envio)
                 Notificacao.objects.create(atendimento=self, data_hora=data_hora_envio, canal=Notificacao.CANAL_WHATSAPP, mensagem=mensagem, destinatario=pessoa_fisica)
-    
+
     def agendar_notificacao(self):
         data_hora = self.agendado_para
         fuso_horario = self.paciente.municipio and self.paciente.municipio.estado and self.paciente.municipio.estado.fuso_horario or None
@@ -1014,7 +1061,7 @@ class Atendimento(models.Model):
                 content += "<p><b>{}</b>: {}</p>".format(k, v)
         return content
 
-    def get_conteudo_notificacao_whatsapp(self, mensagem, complemento, data_hora, municipio, url):
+    def get_conteudo_notificacao_whatsapp(self, mensagem, complemento, data_hora, municipio, url, finalizacao=None):
         content = "*SISTEMA TELEFIOCRUZ*\n\n"
         content += "Notificação referente ao atendimento *nº {}*: {}\n\n".format(self.get_numero()['label'], mensagem or "")
         content += "*Data/Hora*: {} ({})\n".format(data_hora.strftime('%d/%m/%Y %H:%M'), municipio or '')
@@ -1024,8 +1071,31 @@ class Atendimento(models.Model):
             content += "*Especialista*: {}\n\n".format(self.especialista)
         for k, v in (complemento or {}).items():
                 content += "*{}*: {}\n".format(k, v)
-        content += "*Link*: {}".format(url)
+        if url:
+            content += "*Link*: {}".format(url)
+        if finalizacao:
+            content += '\n{}'.format(finalizacao)
         return content
+    
+    @meta('Mensagem de Confirmação')
+    def get_mensagem_whatsapp_confirmacao_atendimento(self):
+        data_hora = self.agendado_para
+        fuso_horario = self.paciente.municipio and self.paciente.municipio.estado and self.paciente.municipio.estado.fuso_horario or None
+        if fuso_horario:
+            data_hora = fuso_horario.localtime(data_hora)
+        mensagem = "Precisamos que confirme sua presença clicando no link abaixo."
+        return self.get_conteudo_notificacao_whatsapp(mensagem, {}, data_hora, self.paciente.municipio, self.get_url_confirmacao())
+    
+    @meta('Mensagem de Teste de Dispositivo')
+    def get_mensagem_whatsapp_teste_dispositvo(self):
+        data_hora = self.agendado_para
+        fuso_horario = self.paciente.municipio and self.paciente.municipio.estado and self.paciente.municipio.estado.fuso_horario or None
+        if fuso_horario:
+            data_hora = fuso_horario.localtime(data_hora)
+        mensagem = "Antes da realização do seu atendimento, necessitamos verificar que seu computador ou celular possui a configuração necessária para realizar a chamada com o médico."
+        finalizacao = 'Por favor, envie uma mensagem quando estiver disponível para agendarmos uma chamada de teste.'
+        return self.get_conteudo_notificacao_whatsapp(mensagem, {}, data_hora, self.paciente.municipio, None, finalizacao)
+    
 
     def formfactory(self):
         return (
@@ -1109,8 +1179,18 @@ class Atendimento(models.Model):
         tag = Badge(color, self.tipo, icon=icon)
         tags.append(tag)
         tags.append(self.get_situacao())
-        if self.data_hora_confirmacao:
-            tags.append(Badge("#5ca05d", 'Confirmado pelo Paciente', icon='person-circle-check'))
+        if 0 and self.agendado_para > datetime.now():
+            if self.paciente.data_hora_teste_dispositivo:
+                data_hora_teste_dispositivo = self.paciente.data_hora_teste_dispositivo.strftime("Checado em %d/%m/%Y as %H:%M")
+                tags.append(Badge("#5ca05d", data_hora_teste_dispositivo, icon='mobile-screen'))
+            else:
+                tags.append(Badge("gray", 'Teste Dispositivo Pedendente', icon='mobile-screen'))
+            
+            if self.data_hora_confirmacao:
+                data_hora_confirmacao = self.data_hora_confirmacao.strftime("Confirmado em %d/%m/%Y as %H:%M")
+                tags.append(Badge("#5ca05d", data_hora_confirmacao, icon='person-circle-check'))
+            else:
+                tags.append(Badge("gray", 'Aguardando Confirmação', icon='person-circle-check'))
         return tags
     
     @meta('Situação')
@@ -1123,6 +1203,10 @@ class Atendimento(models.Model):
             return Badge("red", 'Cancelado', icon='x')
         elif self.situacao_id == SituacaoAtendimento.AGENDADO:
             return Badge("#d9a91f", 'Agendado', icon='clock')
+        
+    @meta('Telefone do Paciente')
+    def get_telefone_paciente(self):
+        return self.paciente.telefone
     
     @meta('Anexos')
     def get_anexos(self):
