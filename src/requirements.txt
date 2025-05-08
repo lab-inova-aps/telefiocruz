@@ -2,3 +2,4 @@ slthlib==0.0.8
 slthcore==0.2.8
 suds==1.2.0
 xmltodict==0.14.2
+xlsxwriter==3.2.3

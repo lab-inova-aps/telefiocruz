@@ -1311,7 +1311,7 @@ class Atendimento(models.Model):
         AnexoAtendimento.objects.filter(atendimento=self, nome=nome).delete()
         autor = PessoaFisica.objects.get(cpf=cpf)
         anexo = AnexoAtendimento(atendimento=self, autor=autor, nome=nome)
-        dados.update(atendimento=self, data_hora=date.today(), logo=f'http://localhost:8000/static/images/icon-black.svg')
+        dados.update(atendimento=self, data_hora=date.today(), logo=f'{settings.SITE_URL}/static/images/icon-black.svg')
         writter = PdfWriter()
         writter.render(template, dados)
         anexo.arquivo.save('{}.pdf'.format(uuid1().hex), ContentFile(writter.pdf.output()))
