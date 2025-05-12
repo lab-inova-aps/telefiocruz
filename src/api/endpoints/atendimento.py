@@ -222,6 +222,20 @@ class View(endpoints.ViewEndpoint[Atendimento]):
         return self.check_role('g', 'o', 's') or self.instance.is_envolvido(self.request.user)
 
 
+class Atualizar(endpoints.InstanceEndpoint[Atendimento]):
+
+    class Meta:
+        modal = True
+        icon = 'pencil'
+        verbose_name = 'Atualizar'
+
+    def get(self):
+        return self.formfactory().fields(('cid', 'ciap'), 'assunto', 'duvida')
+
+    def check_permission(self):
+        return self.check_role('ps') and self.instance.is_agendado() and self.instance.profissional.is_user(self.request.user)
+
+
 class Agenda(endpoints.QuerySetEndpoint[Atendimento]):
     
     class Meta:
@@ -231,7 +245,7 @@ class Agenda(endpoints.QuerySetEndpoint[Atendimento]):
     
     def get(self):
         return (
-            super().get().all().actions('atendimento.add', 'atendimento.view')
+            super().get().all().actions('atendimento.add', 'atendimento.view', 'atendimento.atualizar')
             .lookup('g', profissional__nucleo__gestores__cpf='username')
             .lookup('o', unidade__nucleo__operadores__cpf='username')
             .lookup('ou', unidade__operadores__cpf='username')
