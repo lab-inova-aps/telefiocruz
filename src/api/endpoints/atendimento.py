@@ -195,11 +195,19 @@ class Add(endpoints.AddEndpoint[Atendimento]):
         agendado_para = cleaned_data.get('agendado_para')
         profissional = cleaned_data.get('profissional')
         especialista = cleaned_data.get('especialista')
+        especialidade = cleaned_data.get('especialidade')
+        paciente = cleaned_data.get('paciente')
+
         if profissional and not profissional.is_user(self.request.user):
             if not profissional.pode_realizar_atendimento(agendado_para, duracao):
-                raise endpoints.ValidationError('O horário selecionado é incompatível com a duração informada.')
-            if especialista and not especialista.pode_realizar_atendimento(agendado_para, duracao):
-                raise endpoints.ValidationError('O horário selecionado é incompatível com a duração informada.')
+                raise endpoints.ValidationError('O horário selecionado é incompatível com a duração informada ou agenda do profissional.')
+        if especialista and not especialista.pode_realizar_atendimento(agendado_para, duracao):
+            raise endpoints.ValidationError('O horário selecionado é incompatível com a duração informada ou agenda do especialista.')
+        if especialidade and paciente and not paciente.atendimentos_paciente.exists():
+            if duracao < especialidade.duracao_minima_primeiro_atendimento:
+                raise endpoints.ValidationError('Por ser o primeiro atendimento do paciente, a duração mínima deve ser de {} minutos.'.format(
+                    especialidade.duracao_minima_primeiro_atendimento
+                ))
         return agendado_para
 
     def check_permission(self):

@@ -220,6 +220,10 @@ class Especialidade(models.Model):
     nome = models.CharField(max_length=150)
 
     area = models.ForeignKey(Area, verbose_name='Área', on_delete=models.CASCADE, null=True, blank=True)
+    duracao_minima_primeiro_atendimento = models.IntegerField(
+        verbose_name="Duração Mínima do Primeiro Atendimento",
+        default=60, choices=[[20, "20 minutos"], [40, "40 minutos"], [60, "60 minutos"]], pick=True
+    )
 
     objects = EspecialidadeQuerySet()
 
