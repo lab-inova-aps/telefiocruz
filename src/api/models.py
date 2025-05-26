@@ -748,10 +748,17 @@ class HorarioAtendimento(models.Model):
 
 class HorarioProfissionalQuerySet(models.QuerySet):
     def disponiveis(self):
+        # return self.filter(
+        #     atendimentos_profissional_saude__isnull=True,
+        #     atendimentos_especialista__isnull=True,
+        #     data_hora__gte=datetime.now()
+        # )
         return self.filter(
-            atendimentos_profissional_saude__isnull=True,
-            atendimentos_especialista__isnull=True,
             data_hora__gte=datetime.now()
+        ).exclude(
+            atendimentos_profissional_saude__situacao_id=SituacaoAtendimento.AGENDADO
+        ).exclude(
+            atendimentos_especialista__situacao_id=SituacaoAtendimento.AGENDADO
         )
     
     def da_semana(self, semana=1):
