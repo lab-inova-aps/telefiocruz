@@ -8,7 +8,7 @@ class ApiApplication(Application):
         self.subtitle = "Telefiocruz - Telessaúde da Fiocruz"
         self.icon = "/static/images/icon.svg"
         self.logo = "/static/images/logo.svg"
-        self.version = '1.0.7'
+        self.version = '1.0.8'
         self.groups.add(
             a="Administrador",
             g="Gestor de Núcleo",
