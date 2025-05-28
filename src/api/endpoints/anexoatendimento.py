@@ -3,6 +3,23 @@ from ..models import AnexoAtendimento
 from django.http import FileResponse
 
 
+class Documentos(endpoints.ListEndpoint[AnexoAtendimento]):
+
+    class Meta:
+        icon = 'file'
+        verbose_name = 'Documentos'
+
+    def get(self):
+        return super().get().search('atendimento__paciente__nome').filters('atendimento__profissional', 'atendimento__especialista' ).fields(
+            'nome_arquivo', 'paciente', 'atendimento', 'get_data', 'get_profissional', 'get_especialista', 
+        ).actions('anexoatendimento.enviar', 'anexoatendimento.baixar').filter(
+            nome__in=['Atestado Médico', 'Prescrição Médica', 'Solicitação de Exame']
+        )
+    
+    def check_permission(self):
+        return self.check_role('ps')
+
+
 class Enviar(endpoints.InstanceEndpoint[AnexoAtendimento]):
 
     class Meta:
@@ -10,9 +27,9 @@ class Enviar(endpoints.InstanceEndpoint[AnexoAtendimento]):
         verbose_name = 'Enviar'
 
     def get(self):
-        print(self.instance.atendimento.paciente.email, 9999)
         return super().formfactory().fields().info(""
-        "O link para este documento será enviado para o e-mail ({}) e/ou Whatsapp ({}) do paciente.".format(
+        "O link para este documento ({}) será enviado para o e-mail ({}) e/ou Whatsapp ({}) do paciente.".format(
+            self.instance.get_url_temporaria(),
             self.instance.atendimento.paciente.email or "não informado",
             self.instance.atendimento.paciente.telefone or "não informado",
         )

@@ -1438,10 +1438,13 @@ class AnexoAtendimento(models.Model):
             data = datetime.strptime(signing.loads(token), "%d/%m/%Y")
             return data >= datetime.now()
         return False
+    
+    def get_url_temporaria(self, days=30):
+        token = signing.dumps((datetime.now()+timedelta(days=days)).strftime("%d/%m/%Y"))
+        return '{}/api/anexoatendimento/baixar/{}/?token={}'.format(settings.SITE_URL, self.pk, token)
 
     def enviar(self):
-        token = signing.dumps((datetime.now()+timedelta(days=1)).strftime("%d/%m/%Y"))
-        url = '{}/api/anexoatendimento/baixar/{}/?token={}'.format(settings.SITE_URL, self.pk, token)
+        url = self.get_url_temporaria(1)
         title = 'Telefiocruz - {}'.format(self.nome)
         content = f'Clique no link abaixo para realizar o download do arquivo "{self.nome}" relacionado ao seu teleatendimento.\n Importante: O link tem validade de apenas um dia.'
         if self.atendimento.paciente.telefone:
@@ -1455,6 +1458,22 @@ class AnexoAtendimento(models.Model):
     
     def get_arquivo(self):
         return FileLink(self.arquivo, icon='file', modal=True)
+    
+    @meta('Paciente')
+    def get_paciente(self):
+        return self.atendimento.paciente
+    
+    @meta('Data')
+    def get_data(self):
+        return self.atendimento.agendado_para
+    
+    @meta('Profissional Responsável')
+    def get_profissional(self):
+        return self.atendimento.profissional
+    
+    @meta('Especialista')
+    def get_especialista(self):
+        return self.atendimento.especialista
 
     def possui_assinatura(self, cpf):
         if os.path.exists(self.arquivo.path):

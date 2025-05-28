@@ -48,6 +48,7 @@ class ApiApplication(Application):
             "materialapoio.materiaisapoio",
             "estatistica",
             "profissionalsaude.especialistas",
+            "anexoatendimento.documentos",
         )
         self.dashboard.center.add(
             'profissionalsaude.vinculos', 

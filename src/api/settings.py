@@ -209,5 +209,8 @@ else:
 
 DEBUG = 'localhost' in SITE_URL
 
-if not DEBUG:
+if DEBUG:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+else:
     DEFAULT_PASSWORD = lambda user: uuid.uuid1().hex
+
